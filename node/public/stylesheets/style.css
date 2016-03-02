@@ -1,0 +1,53 @@
+@font-face {
+  font-family: "Open Sans";
+  src:
+    local("Open Sans"),
+    url("/components/open-sans-fontface/fonts/Regular/OpenSans-Regular.ttf");
+}
+
+html, body {
+  padding: 0px;
+  margin: 0px;
+  font: 1em "Open Sans", sans-serif;
+  width: 100%;
+  height: 100%;
+  background: lightcyan;
+}
+
+a {
+  color: #00B7FF;
+}
+
+#show {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-flow: row;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+#stage {
+  transition: transform 0.5s ease, box-shadow 0.5s ease
+}
+
+#stage .stage-element:not(:first-child) {
+  visibility: hidden;
+  display: block;
+  position: absolute;
+}
+
+#stage > .stage-element {
+  padding: 20px;
+  transition: opacity 0.5s ease;
+}
+
+#stage.transitioning {
+  transition: transform none;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+}
+
+#stage .removed {
+  opacity: 0;
+}

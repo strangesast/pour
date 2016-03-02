@@ -1,0 +1,20 @@
+mixin loading_beer
+  .beer-loading
+    .glass
+      .beer
+      .foam
+        .foamy
+
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/loading-beer.css')
+    block head
+
+  body
+    block content
+
+    script(src="/javascripts/main.js")
+    block scripts

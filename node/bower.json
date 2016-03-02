@@ -1,0 +1,16 @@
+{
+  "name": "pour",
+  "authors": [
+    "Sam Zagrobelny <strangesast@gmail.com>"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "open-sans-fontface": "^1.4.2"
+  }
+}

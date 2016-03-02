@@ -11,7 +11,7 @@ html, body {
   font: 1em "Open Sans", sans-serif;
   width: 100%;
   height: 100%;
-  background: lightcyan;
+  background: #F5DF86;
 }
 
 a {
@@ -29,7 +29,8 @@ a {
 }
 
 #stage {
-  transition: transform 0.5s ease, box-shadow 0.5s ease
+  border-radius: 0em;
+  transition: transform 0.5s ease, box-shadow 0.5s ease, border-radius 0.5s ease;
 }
 
 #stage .stage-element:not(:first-child) {
@@ -45,6 +46,7 @@ a {
 
 #stage.transitioning {
   transition: transform none;
+  border-radius: 1em;
   box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
 }
 

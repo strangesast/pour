@@ -4,6 +4,13 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var passport = require('passport');
+var localStrategy = require('passport-local').Strategy;
+var expressSession = require('express-session');
+var RedisStore = require('connect-redis')(expressSession);
+var mongoose = require('mongoose');
+var config = require('./config');
+
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
@@ -21,6 +28,31 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// redis sessions
+var sessionStore = new RedisStore();
+app.use(cookieParser(config.secret));
+app.use(expressSession({
+  secret: config.secret,
+  resave: false,
+  store: sessionStore,
+  saveUninitialized: false
+}));
+
+// account setup
+var Account = require('./models/account');
+passport.use(new localStrategy(Account.authenticate()));
+passport.serializeUser(Account.serializeUser());
+passport.deserializeUser(Account.deserializeUser());
+
+mongoose.connect(config.databaseUrl, function(err) {
+  if (err) {
+    console.log("failed to connect to mongo database (" + config.databaseUrl + ")");
+  } else {
+    console.log("connected to mongodb at " + config.databaseUrl);
+  }
+  return;
+});
 
 app.use('/', routes);
 app.use('/users', users);

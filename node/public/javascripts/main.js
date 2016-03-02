@@ -48,7 +48,7 @@ var renderResponse = function(responseData) {
             stage.classList.remove('transitioning');
           }, 1000);
         }, 500);
-      }, 1000);
+      }, 20000);
 
       break;
 

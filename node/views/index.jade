@@ -1,10 +1,38 @@
 extends layout
 
 block content
-  #show
-    #stage
-      .stage-element
-        +loading_beer
+  .wrapper#wrapper
+    .outer#first.active
+      .inner
+        button.square 1
+
+    .outer#second
+      .inner
+        button.square 1
+        button.square 2
+
+    .outer#third
+      .inner
+        button.square 1
+        button.square 2
+        button.square 3
+        button.square 4
+
+    .outer#fourth
+      .inner
+        button.square 1
+        button.square 2
+        button.square 3
+        button.square 4
+        button.square 5
+        button.square 6
+        button.square 7
+        button.square 8
+
+
+  #controls
+    button#next Next
+    button#previous Previous
 
 block scripts
-  //script(src="/javascripts/index.js")
+  script(src="/javascripts/index.js")

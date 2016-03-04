@@ -4,35 +4,38 @@ block content
   .wrapper#wrapper
     .outer#first.active
       .inner
-        button.square 1
+        .square toasttoasttoasttoasttoast
 
     .outer#second
       .inner
-        button.square 1
-        button.square 2
+        .square toasttoasttoasttoasttoast
+        .square mosttoastmosttoastmosttoast
 
     .outer#third
       .inner
-        button.square 1
-        button.square 2
-        button.square 3
-        button.square 4
+        .square toasttoasttoasttoasttoast
+        .square mosttoastmosttoastmosttoast
+        .square 3
+        .square 4
 
     .outer#fourth
       .inner
-        button.square 1
-        button.square 2
-        button.square 3
-        button.square 4
-        button.square 5
-        button.square 6
-        button.square 7
-        button.square 8
+        .square toasttoasttoasttoasttoastoasttoasttoasttoasttoast
+        .square mosttoastmosttoastmosttoast
+        .square 3
+        .square 4
+        .square 5
+        .square 6
+        .square 7
+        .square 8
 
 
   #controls
     button#next Next
     button#previous Previous
+    select#transition-type
+      option(value="scale") Scale
+      option(value="slide") Slide
 
 block scripts
   script(src="/javascripts/index.js")

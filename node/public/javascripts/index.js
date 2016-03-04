@@ -19,19 +19,34 @@ var disableButtons = function(state) {
 var wrapperElement = document.getElementById('wrapper');
 var nextButton = document.getElementById('next');
 var previousButton = document.getElementById('previous');
+var transition_type = document.getElementById('transition-type');
 
 var transitionInProgress = false;
-var transition = function(firstElement, secondElement) {
+var transition = function(firstElement, secondElement, transformType) {
   transitionInProgress = true;
-
-  secondElement.classList.add('ready');
-
   var f, s;
   return new Promise(function(resolve, reject) {
     return setTimeout(function() {
       f = firstElement.firstChild.getBoundingClientRect();
       s = secondElement.firstChild.getBoundingClientRect();
-      secondElement.firstChild.style.transform = "scale(" + f.width / s.width + ", " + f.height / s.height + ")";
+      console.log(f);
+      var transform, inverseTransform;
+      switch (transformType) {
+        case "scale":
+          inverseTransform = "scale(" + f.width / s.width + ", " + f.height / s.height + ")";
+          transform = "scale(" + s.width / f.width + ", " + s.height / f.height + ")";
+          break;
+        case "slide":
+          transform = "translateX(" + (f.left + f.width) + "px)";
+          inverseTransform = "translateX(" + (-s.left - s.width) + "px)";
+          break;
+        case "sliderev":
+          transform = "translateX(" + (-f.left - f.width) + "px)";
+          inverseTransform = "translateX(" + (s.left + s.width) + "px)";
+          break;
+
+      }
+      secondElement.firstChild.style.transform = inverseTransform;
       return setTimeout(function() {
         secondElement.classList.remove('ready');
         secondElement.classList.add('transitioning');
@@ -40,7 +55,7 @@ var transition = function(firstElement, secondElement) {
         firstElement.classList.add('transitioning');
         firstElement.classList.remove('active');
 
-        firstElement.firstChild.style.transform = "scale(" + s.width / f.width + ", " + s.height / f.height + ")";
+        firstElement.firstChild.style.transform = transform;
         secondElement.firstChild.style.transform = "";
 
         return setTimeout(function() {
@@ -50,10 +65,18 @@ var transition = function(firstElement, secondElement) {
           transitionInProgress = false;
           return resolve();
         }, 500);
-      }, 10);
-    }, 10);
+      }, 50);
+    }, 50);
   });
 };
+
+var getTransitionType = function(rev) {
+  var value = transition_type.value;
+  if(rev && value === "slide") {
+    return "sliderev";
+  }
+  return value;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   nextButton.onclick = function(evt) {
@@ -62,7 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var firstElement = wrapperElement.firstElementChild;
     var secondElement = wrapperElement.children[1];
-    transition(firstElement, secondElement).then(function() {
+    var transitionType = getTransitionType();
+    transition(firstElement, secondElement, transitionType).then(function() {
       wrapperElement.appendChild(firstElement);
     });
   };
@@ -72,7 +96,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var firstElement = wrapperElement.firstElementChild;
     var secondElement = wrapperElement.lastElementChild;
-    transition(firstElement, secondElement).then(function() {
+    var transitionType = getTransitionType(true);
+    transition(firstElement, secondElement, transitionType).then(function() {
       wrapperElement.insertBefore(secondElement, firstElement);
     });
   };

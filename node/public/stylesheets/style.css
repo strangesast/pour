@@ -16,6 +16,7 @@ html, body {
   position: relative;
   height: 100%;
   background: white;
+  overflow: hidden;
 }
 
 .wrapper > .outer:not(:first-child) {
@@ -64,10 +65,10 @@ html, body {
   height: 200px;
   /*background: gray;*/
   margin: 10px;
-  font-size: 10em;
+  /*font-size: 10em;*/
   color: white;
-  text-align: center;
   display: inline-block;
+  word-wrap: break-word
 }
 
 #controls {

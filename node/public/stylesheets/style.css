@@ -19,7 +19,7 @@ html, body {
 }
 
 .wrapper > .outer:not(:first-child) {
-  display: none;
+  visibility: hidden;
   opacity: 0;
 }
 
@@ -27,8 +27,8 @@ html, body {
   opacity: 0;
 }
 
-.wrapper > .outer.ready {
-  opacity; 1;
+.wrapper > .outer.transitioning {
+  visibility: visible;
   display: flex;
 }
 
@@ -37,7 +37,7 @@ html, body {
 }
 
 .wrapper > .outer.transitioning > .inner {
-  transition: transform 5.0s ease;
+  transition: transform 0.5s ease;
 }
 
 .outer {
@@ -51,7 +51,7 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: opacity 5.0s ease;
+  transition: opacity 0.5s ease;
 }
 
 .inner {

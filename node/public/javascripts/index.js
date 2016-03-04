@@ -49,7 +49,7 @@ var transition = function(firstElement, secondElement) {
           secondElement.classList.remove('transitioning');
           transitionInProgress = false;
           return resolve();
-        }, 5000);
+        }, 500);
       }, 10);
     }, 10);
   });

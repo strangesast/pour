@@ -1,6 +1,22 @@
 {
-  "name" : "Pour",
-  "display" : "fullscreen",
+  "name": "Pour",
+  "description": "Pour beer",
+  "version": "0.0.0.1",
+  "manifest_version": 2,
+  "app": {
+    "urls": [
+      "http://128.153.121.95:3000/"
+    ],
+    "launch": {
+      "web_url": "http://128.153.121.95:3000/"
+    }
+  },
+  "theme_color" : "#000000",
+  "display" : "standalone",
   "orientation" : "portrait",
-  "theme_color": "#000000"
+  "kiosk_enabled": true,
+  "kiosk_only": true,
+  "permissions" : [
+    "fullscreen"
+  ]
 }

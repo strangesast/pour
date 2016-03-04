@@ -3,6 +3,9 @@
   "description": "Pour beer",
   "version": "0.0.0.1",
   "manifest_version": 2,
+  "icons": {
+    "128": "images/beer-256.png"
+  },
   "app": {
     "urls": [
       "http://128.153.121.95:3000/"

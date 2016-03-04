@@ -58,6 +58,9 @@ html, body {
 .inner {
   /* hold all page content */
   background: silver;
+  max-height: 100%;
+  max-width: 100%;
+  overflow: auto;
 }
 
 .square {

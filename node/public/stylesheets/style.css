@@ -25,6 +25,11 @@ html, body {
   opacity: 0;
 }
 
+.wrapper.loading > .outer {
+  visibility: hidden;
+  opacity: 0;
+}
+
 .wrapper > .outer {
   opacity: 0;
 }
@@ -35,6 +40,7 @@ html, body {
 }
 
 .wrapper > .outer.active {
+  visibility: visible;
   opacity: 1;
 }
 
@@ -65,7 +71,7 @@ html, body {
   flex-wrap: wrap;
   margin: 10px;
   overflow: auto;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  /*box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);*/
   box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
   border-radius: 5px;
 }

@@ -1,24 +1,24 @@
 extends layout
 
 block content
-  .wrapper#wrapper
-    .outer#first.active
+  .wrapper.loading#wrapper
+    .outer#first(hash-url="one").active
       .inner
         .square 1
 
-    .outer#second
+    .outer#second(hash-url="two")
       .inner
         .square 1
         .square 2
 
-    .outer#third
+    .outer#third(hash-url="three")
       .inner
         .square 1
         .square 2
         .square 3
         .square 4
 
-    .outer#fourth
+    .outer#fourth(hash-url="four")
       .inner
         .square 1
         .square 2

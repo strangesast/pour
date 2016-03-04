@@ -29,7 +29,6 @@ var transition = function(firstElement, secondElement, transformType) {
     return setTimeout(function() {
       f = firstElement.firstChild.getBoundingClientRect();
       s = secondElement.firstChild.getBoundingClientRect();
-      console.log(f);
       var transform, inverseTransform;
       switch (transformType) {
         case "scale":
@@ -78,27 +77,57 @@ var getTransitionType = function(rev) {
   return value;
 }
 
+nextButton.onclick = function(evt) {
+  if(transitionInProgress) {
+    return;
+  }
+  var firstElement = wrapperElement.firstElementChild;
+  var secondElement = wrapperElement.children[1];
+  var transitionType = getTransitionType();
+  transition(firstElement, secondElement, transitionType).then(function() {
+    wrapperElement.appendChild(firstElement);
+  });
+};
+
+previousButton.onclick = function(evt) {
+  if(transitionInProgress) {
+    return;
+  }
+  var firstElement = wrapperElement.firstElementChild;
+  var secondElement = wrapperElement.lastElementChild;
+  var transitionType = getTransitionType(true);
+  transition(firstElement, secondElement, transitionType).then(function() {
+    wrapperElement.insertBefore(secondElement, firstElement);
+  });
+};
+
+var setActiveTo = function(loc, animate) {
+  var selector = '[hash-url="' + loc + '"]';
+  if(animate) {
+    console.log(selector);
+  }
+  var div = document.querySelector('[hash-url="' + loc + '"]');
+  var oldDiv = document.querySelector('.active');
+  oldDiv.classList.remove('active');
+  div.classList.add('active');
+};
+
 document.addEventListener('DOMContentLoaded', function() {
-  nextButton.onclick = function(evt) {
-    if(transitionInProgress) {
-      return;
-    }
-    var firstElement = wrapperElement.firstElementChild;
-    var secondElement = wrapperElement.children[1];
-    var transitionType = getTransitionType();
-    transition(firstElement, secondElement, transitionType).then(function() {
-      wrapperElement.appendChild(firstElement);
-    });
-  };
-  previousButton.onclick = function(evt) {
-    if(transitionInProgress) {
-      return;
-    }
-    var firstElement = wrapperElement.firstElementChild;
-    var secondElement = wrapperElement.lastElementChild;
-    var transitionType = getTransitionType(true);
-    transition(firstElement, secondElement, transitionType).then(function() {
-      wrapperElement.insertBefore(secondElement, firstElement);
-    });
-  };
+  var hash = window.location.hash;
+  if(hash === "") {
+    history.pushState(null, null, '#/one');
+  }
+  var loc = hash.split('/').slice(1)[0];
+  if(["one", "two", "three", "four"].indexOf(loc) < 0) {
+    history.pushState(null, null, '#/one');
+    loc = "one"
+  }
+  setActiveTo(loc, false);
+  wrapperElement.classList.remove('loading');
 });
+
+window.addEventListener('popstate', function(evt) {
+  var hash = window.location.hash;
+  var loc = hash.split('/').slice(1)[0];
+  setActiveTo(loc, true);
+})

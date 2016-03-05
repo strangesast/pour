@@ -1,0 +1,33 @@
+link(rel='stylesheet' href='/stylesheets/login.css')
+div.login-divider
+  div.form-container
+    form#sign-in-form.form-signin(name="signin" role='form', action='/account/login', method='POST')
+      h2.form-signin-heading Log in
+      div.form-group
+        label(for='log-in-username') Username
+        input.form-control#log-in-username(type='username', name='username', placeholder='username')
+      div.form-group
+        label(for='log-in-password') Password
+        input.form-control#log-in-password(type='password', name='password', placeholder='password')
+      button#submit.btn.btn-primary.btn-block(type='submit') Submit
+    
+      p
+        a.btn.btn-default.btn-block(href='/#/account/register') Register
+      p
+        input(action="action", type="button", value="Back", onclick="window.history.go(-1); return false").btn.btn-default
+    
+      if errors
+        if errors.length
+          h2 Errors!
+          p=errors
+  div.usernames-container
+    for user in users
+      div.userblock=user.username
+
+
+script().
+  var form = document.getElementById('sign-in-form');
+  var submit = document.getElementById('button');
+  submit.onclick = function(evt) {
+    return false;
+  }

@@ -16,6 +16,7 @@ var config = require('./config');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 var account = require('./routes/account');
+var hash = require('./routes/hash');
 
 var app = express();
 
@@ -67,6 +68,7 @@ mongoose.connect(config.databaseUrl, function(err) {
 app.use('/', routes);
 app.use('/users', users);
 app.use('/account', account);
+app.use('/hash', hash);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

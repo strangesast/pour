@@ -1,47 +1,110 @@
-var createElementWithProp = function(elementName, properties) {
-  var elem = document.createElement(elementName);
-  for(var prop in properties) {
-    elem.setAttribute(prop, properties[prop]);
-  }
-  return elem;
+var wrapperElement = document.getElementById('wrapper');
+var transitionTypeElement = document.getElementById('transition-type');
+var transitionInProgress = false;
+
+var hashChangeListenerEvent = function(evt) {
+  var hashUrl = window.location.hash.slice(1);
+  loadByHash(hashUrl);
+};
+window.addEventListener('popstate', hashChangeListenerEvent);
+
+// call function after disabling hash listener
+var disableHashChangeAndDo = function(func) {
+  window.removeEventListener('popstate', hashChangeListenerEvent);
+  func();
+  window.addEventListener('popstate', hashChangeListenerEvent);
 };
 
-var makeRequest = function(url, method, data, updateFunc) {
-  return new Promise(function(resolve, reject) {
-    var request = new XMLHttpRequest();
-    request.open(method, url, true);
-    request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    request.onload = function() {
-      if (request.status >= 200 && request.status < 400) {
-        return resolve(request);
-      } else {
-        return reject(request);
-      }
-    };
-    request.onerror = function(error) {
-      return reject(error);
-    };
-    if(updateFunc) {
-      request.onprogress = updateFunc;
-    }
-    request.send(data);
+var changeHashWithoutEvent = function(hash) {
+  return disableHashChangeAndDo(function() {
+    return window.location.replace('#' + hash.split('#').join(''));
   });
 };
 
-var disableButtons = function(state) {
-  if(state) {
-    nextButton.disabled = true;
-    previousButton.disabled = true;
-  } else {
-    nextButton.disabled = false;
-    previousButton.disabled = false;
+// when doc loads, load correct hash content
+document.addEventListener('DOMContentLoaded', function() {
+  var hashUrl = window.location.hash.slice(1);
+  if(hashUrl === ""){
+    changeHashWithoutEvent('#/index');
   }
+  loadByHash(hashUrl);
+  wrapperElement.classList.remove('loading');
+});
+
+// load content at hash url
+var loadByHash = function(raw_hashUrl) {
+  // clean up trailing / leading '/'s
+  var hashUrl = raw_hashUrl.split('/').filter(function(e){return e;}).join('/');
+  if(hashUrl === "") {
+    hashUrl = 'index';
+  }
+  // check that a view aleady exists
+  var existingElement = wrapperElement.querySelector('[hash-url="' + hashUrl + '"]');
+  var prom = Promise.resolve(hashUrl);
+  if(existingElement && existingElement.hasAttribute('static')) {
+    // if its static, set existingElement to active
+  } else {
+    // make request
+    var fullUrl = '/hash/' + hashUrl;
+    var html;
+    var newHashUrl;
+    prom = general.makeRequest(fullUrl, "GET", null, null).then(function(request) {
+      console.log("success");
+      var data = JSON.parse(request.responseText);
+
+      newHashUrl = data.hash_id;
+      html = data.html;
+
+      return request;
+
+    }).catch(function(request) {
+      console.log("failure");
+      newHashUrl = fullUrl.split('hash/').slice(1)[0];
+      try {
+        html = JSON.parse(request.response).html;
+      } catch (e) {
+      }
+      if(!html) {
+        if(request.status >= 400 && request.status < 500) {
+          html = "<div>4XX Error</div>";
+        } else {
+          html = "<div>5XX Error</div>";
+        }
+      }
+      return request;
+    }).then(function(request) {
+      if(newHashUrl !== hashUrl) {
+        // redirected
+        changeHashWithoutEvent(newHashUrl);
+        existingElement = wrapperElement.querySelector('[hash-url="' + newHashUrl + '"]');
+      }
+      var outerDivProps = {
+        'class':'outer',
+        'hash-url': newHashUrl
+      };
+      var outerDiv = general.createElementWithProp('div', outerDivProps);
+      var innerDiv = general.createElementWithProp('div', {'class': 'inner'});
+      innerDiv.innerHTML = html;
+      outerDiv.appendChild(innerDiv);
+
+      if(existingElement) {
+        // replace it
+        wrapperElement.replaceChild(outerDiv, existingElement);
+      } else {
+        // append it
+        wrapperElement.appendChild(outerDiv);
+      }
+      // set to active
+      return newHashUrl;
+    });
+  }
+  prom.then(function(hash) {
+    console.log("hash");
+    console.log(hash);
+    setActiveTo(hash, true);
+  });
 };
 
-var wrapperElement = document.getElementById('wrapper');
-var transition_type = document.getElementById('transition-type');
-
-var transitionInProgress = false;
 var transition = function(firstElement, secondElement, transformType) {
   transitionInProgress = true;
   var f, s;
@@ -90,56 +153,11 @@ var transition = function(firstElement, secondElement, transformType) {
 };
 
 var getTransitionType = function(rev) {
-  var value = transition_type.value;
+  var value = transitionTypeElement.value;
   if(rev && value === "slide") {
     return "sliderev";
   }
   return value;
-};
-
-var loadByHashId = function(hash_id) {
-  var outer = wrapperElement.querySelector('[hash-url="' + hash_id + '"]');
-  if(!outer || !(outer.hasAttribute('static') || outer.hasAttribute('fresh'))) {
-    var url = '/hash/' + hash_id;
-    makeRequest(url, 'GET', null, null).then(function(request) {
-      var result = JSON.parse(request.response);
-      var hashBasic = result.hash_id.split('?')[0].split('/')[0];
-
-      var outerDivProps = {'class': 'outer', 'id':hashBasic};
-      // uhh gayyy
-      if(result.hash_id !== hash_id) {
-        outerDivProps.fresh = "";
-      }
-      var outerDiv = createElementWithProp('div', outerDivProps);
-      outerDiv.setAttribute('hash-url', hashBasic);
-      var innerDiv = createElementWithProp('div', {'class': 'inner'});
-      innerDiv.innerHTML = result.html;
-      outerDiv.appendChild(innerDiv);
-
-      var exisitingDiv = wrapperElement.querySelector('[hash-url="' + hashBasic + '"]');
-
-      if(exisitingDiv) {
-        wrapperElement.replaceChild(outerDiv, exisitingDiv);
-      } else {
-        wrapperElement.appendChild(outerDiv);
-      }
-
-      // check if hash_url is different than initially
-
-      if(result.hash_id !== hash_id) {
-        // redirected
-        window.location.replace('/#/' + result.hash_id) ;
-      } else {
-        setActiveTo(hash_id.split('?')[0], true);
-      }
-    });
-  } else {
-    if(outer.hasAttribute('fresh')) {
-      outer.removeAttribute('fresh');
-    }
-    // just switch to it
-    setActiveTo(hash_id, true);
-  }
 };
 
 var setActiveTo = function(loc, animate) {
@@ -158,49 +176,3 @@ var setActiveTo = function(loc, animate) {
     div.classList.add('active');
   }
 };
-
-document.addEventListener('DOMContentLoaded', function() {
-  var hash = window.location.hash;
-  if(hash === ""){
-    hash = '#/index';
-    window.location.hash = hash;
-  }
-  var loc = hash.split('/').slice(1)[0];
-  // valid choices
-  if(["index", "option"].indexOf(loc) < 0) {
-    hash = '#/index';
-    window.location.hash = hash;
-    loc = "index";
-  }
-  setActiveTo(loc, false);
-  wrapperElement.classList.remove('loading');
-});
-
-window.addEventListener('popstate', function(evt) {
-  var hash = window.location.hash;
-  var loc = hash.split('/').slice(1)[0];
-  loadByHashId(loc);
-});
-
-//nextButton.onclick = function(evt) {
-//  if(transitionInProgress) {
-//    return;
-//  }
-//  var firstElement = wrapperElement.querySelector('.active');
-//  var secondElement = firstElement.nextElementSibling || wrapperElement.firstElementChild;
-//  var transitionType = getTransitionType();
-//  transition(firstElement, secondElement, transitionType).then(function() {
-//  });
-//
-//};
-//
-//previousButton.onclick = function(evt) {
-//  if(transitionInProgress) {
-//    return;
-//  }
-//  var firstElement = wrapperElement.querySelector('.active');
-//  var secondElement = firstElement.previousSibling || wrapperElement.lastElementChild;
-//  var transitionType = getTransitionType(true);
-//  transition(firstElement, secondElement, transitionType).then(function() {
-//  });
-//};

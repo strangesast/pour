@@ -1,0 +1,31 @@
+link(rel='stylesheet' href='/stylesheets/login.css')
+.register-container
+  form.form-signin(role='form', action='./register', method='POST')
+    h2.form-signin-heading Register
+    .form-group
+      label(for='register-username') Username
+      input.form-control#register-username(type='username', name='username', placeholder='username')
+    .form-group
+      label(for='register-password') Password
+      input.form-control#register-password(type='password', name='password', placeholder='password')
+    button.btn.btn-primary.btn-block(type='submit') Submit
+  
+    p Choose an image
+    .form-group
+      label(for='register-profile-image') Profile image
+      p
+        span.btn.btn-default.btn-file
+          | Choose image
+          input#register-profile-image(type="file", accept='image/*', capture='camera')
+    div.default-images
+  
+    h3.form-signin-heading Have an account?
+    p
+      a.btn.btn-default.btn-block(href='/#/account/login') Log in
+    p
+      input(action="action", type="button", value="Back", onclick="window.history.go(-1); return false").btn.btn-default
+  
+    if errors
+      if errors.length
+        h2 Errors!
+        p=errors

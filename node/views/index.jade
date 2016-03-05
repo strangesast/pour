@@ -2,37 +2,22 @@ extends layout
 
 block content
   .wrapper.loading#wrapper
-    .outer#first(hash-url="one")
+    .outer#index(hash-url="index", static=true)
       .inner
-        .square 1
+        a(href="/#/option")#main.btn.btn-default POUR
 
-    .outer#second(hash-url="two")
+    .outer#option(hash-url="option", static=true)
       .inner
-        .square 1
-        .square 2
+        #option
+          a(href="/#/pour")#count.btn.btn-default COUNT
+          a(href="/#/pour?anonymous=True")#pass.btn.btn-default PASS
 
-    .outer#third(hash-url="three")
+    .outer#loading
       .inner
-        .square 1
-        .square 2
-        .square 3
-        .square 4
-
-    .outer#fourth(hash-url="four")
-      .inner
-        .square 1
-        .square 2
-        .square 3
-        .square 4
-        .square 5
-        .square 6
-        .square 7
-        .square 8
-
+        div
+          +loading_beer
 
   #controls
-    button#next Next
-    button#previous Previous
     select#transition-type
       option(value="scale") Scale
       option(value="slide") Slide

@@ -64,7 +64,7 @@ html, body {
 
 .inner {
   /* hold all page content */
-  background: silver;
+  /*background: lightblue;*/
   max-height: 100%;
   max-width: 100%;
   display: flex;
@@ -72,17 +72,18 @@ html, body {
   margin: 10px;
   overflow: auto;
   /*box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);*/
+  /*border-radius: 5px;*/
+}
+
+.inner > * {
   box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-  border-radius: 5px;
 }
 
 .square {
   width: 200px;
   height: 200px;
-  background: gray;
   margin: 10px;
-  font-size: 5em;
-  color: white;
+  font-size: 3em;
   line-height: 200px;
   vertical-align: middle;
   text-align: center;
@@ -93,4 +94,48 @@ html, body {
   position: fixed;
   bottom: 0;
   right: 0;
+}
+
+#main {
+  padding: 20px;
+  font-size: 5em;
+  color: rgba(0, 10, 50);
+}
+
+#option {
+  display: flex;
+  flex-direction: column;
+}
+
+#option > * {
+  margin: 10px 0px;
+}
+
+#count {
+  width: 220px;
+  height: 220px;
+  line-height:220px;
+  font-size: 3em;
+  font-align: middle
+}
+
+#pass {
+  width: 220px;
+  height: 50px;
+  font-size: 1.5em;
+}
+
+.usernames {
+  display: flex;
+  margin: 10px 0;
+  max-width: 500px;
+  overflow-x: auto;
+}
+
+.usernames > .userblock {
+  height: 50px;
+  margin: 2px;
+  padding: 5px;
+  border-radius: 2px;
+  background: grey;
 }

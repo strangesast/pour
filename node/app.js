@@ -8,12 +8,14 @@ var passport = require('passport');
 var localStrategy = require('passport-local').Strategy;
 var expressSession = require('express-session');
 var RedisStore = require('connect-redis')(expressSession);
+var flash = require('connect-flash');
 var mongoose = require('mongoose');
 var config = require('./config');
 
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
+var account = require('./routes/account');
 
 var app = express();
 
@@ -35,11 +37,19 @@ app.use(cookieParser(config.secret));
 app.use(expressSession({
   secret: config.secret,
   resave: false,
-  store: sessionStore,
-  saveUninitialized: false
+  store: null,
+  saveUninitialized: false,
+  cookie: {
+    expires: true,
+    maxAge: 60000
+  }
 }));
+app.use(flash());
 
 // account setup
+app.use(passport.initialize());
+app.use(passport.session());
+
 var Account = require('./models/account');
 passport.use(new localStrategy(Account.authenticate()));
 passport.serializeUser(Account.serializeUser());
@@ -56,6 +66,7 @@ mongoose.connect(config.databaseUrl, function(err) {
 
 app.use('/', routes);
 app.use('/users', users);
+app.use('/account', account);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

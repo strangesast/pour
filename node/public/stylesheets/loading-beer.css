@@ -16,41 +16,53 @@
   width: 60%;
   height: 60%;
   overflow: hidden;
+}
+
+.beer-loading[active] > .glass {
   animation: glass-animation 10s infinite;
   animation-delay: 1s;
 }
 
-.glass > .beer {
+.beer-loading > .glass > .beer {
   width: 200%;
   height: 100%;
   position: absolute;
   top: 0px;
   transform: translateY( 100% );
   background: #F1D744;
+}
+
+.beer-loading[active] > .glass > .beer {
   animation: beer-animation 10s infinite;
   animation-timing-function: cubic-bezier(.33,.89,.61,.91);
   animation-timing-function: ease;
   animation-delay: 1s;
 }
 
-.glass > .foam {
+.beer-loading > .glass > .foam {
   width: 200%;
   height: 100%;
   position: absolute;
   top: 0px;
   transform: translateY( 100% );
+}
+
+.beer-loading[active] > .glass > .foam {
   animation: beer-animation 10s infinite;
   animation-timing-function: cubic-bezier(.33,.89,.61,.91);
   animation-timing-function: ease;
   animation-delay: 1s;
 }
 
-.glass > .foam > .foamy {
+.beer-loading > .glass > .foam > .foamy {
   position: absolute;
   top: 0px;
   width: 100%;
   height: 1em;
   background: #F5F5F5;
+}
+
+.beer-loading[active] > .glass > .foam > .foamy {
   animation: foam-animation 10s infinite;
   animation-delay: 1s;
 }

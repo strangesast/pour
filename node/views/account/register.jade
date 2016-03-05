@@ -1,0 +1,19 @@
+extends ../layout
+
+block head
+  link(href="/stylesheets/account.css", rel="stylesheet")
+  
+block content
+  form.form-signin(role='form', action='./register', method='POST')
+    h2.form-signin-heading Register
+    input.form-control(type='username', name='username', placeholder='username')
+    input.form-control(type='password', name='password', placeholder='password')
+    button.btn.btn-primary.btn-block(type='submit') Submit
+
+    h3.form-signin-heading Have an account?
+    a.btn.btn-default.btn-block(href='./login') Log in
+  
+    if errors
+      if errors.length
+        h2 Errors!
+        p=errors

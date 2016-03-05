@@ -1,0 +1,31 @@
+extends ../layout
+
+block content
+  .row
+    .col-md-12
+      h1 Account Page
+      
+      if user
+        p Logged in as #{user.username}
+
+        if user.admin
+          p You are an admin
+          a(href='/account/users-summary') Users
+      else
+        p You are not logged in.  Some actions will be restricted.
+  
+  .row
+    .col-md-4
+      if user
+        a.btn.btn-default(href='/account/logout')
+          span.glyphicon.glyphicon-log-out
+          |  Logout
+      else
+        .btn-group(role="group")
+          a.btn.btn-primary(href='/account/login') 
+            span.glyphicon.glyphicon-log-in
+            |  Login
+          a.btn.btn-default(href='/account/register') Register
+
+block scripts
+  script(src='/javascripts/account.js')

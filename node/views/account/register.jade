@@ -9,9 +9,14 @@ block content
     input.form-control(type='username', name='username', placeholder='username')
     input.form-control(type='password', name='password', placeholder='password')
     button.btn.btn-primary.btn-block(type='submit') Submit
+    p Choose an image
+    input(type="file", accept="image/*", capture="camera")
+    div.default-images
 
     h3.form-signin-heading Have an account?
     a.btn.btn-default.btn-block(href='./login') Log in
+
+
   
     if errors
       if errors.length

@@ -1,22 +1,28 @@
 .login-divider {
   height: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   color: white;
+  padding: 4px;
 }
 .login-divider > div {
   display: block;
   max-width: 400px;
+  flex-grow: 1;
 }
 
 .login-divider > .form-container {
-  min-width: 200px;
+  min-width: 300px;
 }
 
 .login-divider > .usernames-container {
   display: flex;
   flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
+  flex-direction: column;
+  height: 280px;
   min-width: 280px;
+  overflow-x: auto;
 }
 
 .usernames-container > .userblock {
@@ -28,15 +34,6 @@
   background: white;
   color: black;
 }
-
-/*
-.usernames-container {
-  display: flex;
-  margin: 10px 0;
-  max-width: 500px;
-  overflow-x: auto;
-}
-*/
 
 .register-container {
   width: 100%;

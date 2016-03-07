@@ -11,6 +11,13 @@ arduino_port = '/dev/ttyACM0'
 
 clients = []
 
+def log(text):
+    print(text)
+    with open('communication.log', 'a') as f:
+        f.write(text + '\n')
+
+    return
+
 async def echo_server(address):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -19,7 +26,7 @@ async def echo_server(address):
     sock.setblocking(False)
     while True:
         client, addr = await loop.sock_accept(sock)
-        print('Connected from', addr)
+        log('SERVER: Connected from ' + addr[0])
         loop.create_task(echo_handler(client))
 
 async def echo_handler(client):
@@ -29,6 +36,8 @@ async def echo_handler(client):
             data = await loop.sock_recv(client, 10000)
             if not data:
                 break
+            log('CLIENT: message received from "' + client.getpeername()[0] + '": "' + data.decode().strip() + '"')
+
             for each in clients:
                 await loop.sock_sendall(each, b'Got:'+ data)
 
@@ -36,7 +45,8 @@ async def echo_handler(client):
                 each.write(data)
 
     clients.remove(client)
-    print('Connection closed')
+    log('SERVER: Connection closed from "' + client.getpeername()[0] + '"')
+
 
 transports = []
 
@@ -45,27 +55,26 @@ class Output(asyncio.Protocol):
         self.transport = transport
         transports.append(transport)
         self.current_data = ""
-        print('port opened on', transport)
+        log('SERVER: serial port opened')
         transport.serial.rts = False
-        transport.write(b'Hellooooo\n')
 
     def data_received(self, data):
         string = data.decode('utf-8')
         self.current_data += string
-        #print('data received', repr(data))
         if '\n' in string:
             splt = self.current_data.split('\n')
             full_string = splt.pop(0)
             self.current_data = "".join(splt)
             for each in clients:
                 each.send((full_string + '\n').encode())
-            print(full_string)
+            log('SERIAL: message received: "' + full_string.strip() + '"')
 
     def connection_lost(self, exc):
+        log('SERVER: serial port closed')
         transports.remove(self.transport)
-        print('port closed')
 
     def write_message(self, message):
+        log('SERIAL: message written: "' + message + '"')
         self.transport.write(message)
 
 def got_result(future):
@@ -78,7 +87,12 @@ loop.create_task(echo_server(('', 25000)))
 co = serial.aio.create_serial_connection(loop, Output, arduino_port, baudrate=9600)
 
 loop.run_until_complete(co)
-loop.run_forever()
+
+try:
+    loop.run_forever()
+except KeyboardInterrupt:
+    pass
+
 loop.close()
 
 

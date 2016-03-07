@@ -95,6 +95,13 @@ var loadByHash = function(raw_hashUrl) {
         wrapperElement.appendChild(outerDiv);
       }
       // set to active
+
+      // activate scripts
+      var scripts = innerDiv.getElementsByTagName('script');
+      for(var i=0, elem; elem = scripts[i], i < scripts.length; i++) {
+        eval(elem.innerHTML); // jshint ignore:line
+      }
+
       return newHashUrl;
     });
   }

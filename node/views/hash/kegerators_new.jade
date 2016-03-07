@@ -1,0 +1,34 @@
+link(rel='stylesheet' href='/stylesheets/kegerator.css')
+div.new-kegerator-container
+  form#new-kegerator-form.form-horizontal(name="kegerator")
+    h2 New Kegerator
+    .form-group
+      label.col-sm-3(for="new-kegerator-name") Name
+      .col-sm-9
+        input#new-kegerator-name.form-control(name="name", type="text", placeholder="the sneaky keg")
+    .form-group
+      label.col-sm-3(for="new-kegerator-location") Location
+      .col-sm-9
+        input#new-kegerator-location.form-control(name="location", type="text", placeholder="the secret library")
+    .form-group
+      label.col-sm-3(for="new-kegerator-address") Address
+      .col-sm-9
+        input#new-kegerator-address.form-control(name="address", type="text", placeholder="0.0.0.0")
+    .form-group
+      label.col-sm-3(for="new-kegerator-port") Port
+      .col-sm-4
+        input#new-kegerator-port.form-control(name="port", type="number", min=1, max=100000, placeholder="1000")
+    button#new-kegerator-submit.btn.btn-primary(type="submit") Submit
+
+
+script.
+  var submit_button = document.getElementById('new-kegerator-submit');
+  var new_kegerator_form = document.getElementById('new-kegerator-form');
+  var kegeratorSubmitEvent = function(evt) {
+    evt.preventDefault();
+    general.makeRequest('/objects/kegerators', 'POST', new FormData(new_kegerator_form), null).then(function(result) {
+      console.log(result.response);
+    });
+    return false;
+  };
+  new_kegerator_form.addEventListener('submit', kegeratorSubmitEvent);

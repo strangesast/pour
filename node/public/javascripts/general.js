@@ -10,10 +10,14 @@ var general = {
 
   // promisify xmlhttprequest
   makeRequest : function(url, method, data, updateFunc) {
+    var contentType = "application/json";
+    if(data && data.constructor && data.constructor === FormData) {
+      contentType = "application/x-www-form-urlencoded";
+    }
     return new Promise(function(resolve, reject) {
       var request = new XMLHttpRequest();
       request.open(method, url, true);
-      request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      request.setRequestHeader("Content-Type", contentType);
       request.onload = function() {
         if (request.status >= 200 && request.status < 400) {
           return resolve(request);

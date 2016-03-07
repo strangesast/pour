@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var Account = require('../models/account');
+var Kegerator = require('../models/kegerator');
 
 router.use(function(req, res, next) {
   var newHash = req.originalUrl.split('hash/').slice(1)[0];
@@ -53,6 +54,34 @@ router.get('/account/register', function(req, res, next) {
     }
     return res.json({
       html : html,
+      hash_id: req.hash_id
+    });
+  });
+});
+
+router.get('/kegerators/list', function(req, res, next) {
+  return Kegerator.find({}).then(function(kegerators) {
+    return res.render('hash/kegerators_list', {
+      kegerators: kegerators
+    }, function(err, html) {
+      if(err) {
+        return next(err);
+      }
+      return res.json({
+        html: html,
+        hash_id: req.hash_id
+      });
+    });
+  });
+});
+
+router.get('/kegerators/new', function(req, res, next) {
+  return res.render('hash/kegerators_new', function(err, html) {
+    if(err) {
+      return next(err);
+    }
+    return res.json({
+      html: html,
       hash_id: req.hash_id
     });
   });

@@ -1,0 +1,4 @@
+.new-kegerator-container {
+  flex-grow: 1;
+  overflow: hidden;
+}

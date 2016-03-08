@@ -1,6 +1,6 @@
 link(rel='stylesheet' href='/stylesheets/kegerator.css')
 div.new-kegerator-container
-  form#new-kegerator-form.form-horizontal(name="kegerator")
+  form#new-kegerator-form.form-horizontal(name="kegerator", enctype="application/x-www-form-urlencoded")
     h2 New Kegerator
     .form-group
       label.col-sm-3(for="new-kegerator-name") Name
@@ -20,15 +20,44 @@ div.new-kegerator-container
         input#new-kegerator-port.form-control(name="port", type="number", min=1, max=100000, placeholder="1000")
     button#new-kegerator-submit.btn.btn-primary(type="submit") Submit
 
+    div#new-kegerator-result
+
 
 script.
   var submit_button = document.getElementById('new-kegerator-submit');
   var new_kegerator_form = document.getElementById('new-kegerator-form');
+  var result_div = document.getElementById('new-kegerator-result');
   var kegeratorSubmitEvent = function(evt) {
     evt.preventDefault();
-    general.makeRequest('/objects/kegerators', 'POST', new FormData(new_kegerator_form), null).then(function(result) {
+    general.makeRequest('/objects/kegerators', 'POST', new FormData(new_kegerator_form), null, null).then(function(result) {
       console.log(result.response);
+    }).catch(function(result) {
+      console.log('error');
+      if(result.status == 422) {
+        console.log("mongo validation error");
+        var responseData = JSON.parse(result.response);
+        populateErrorElement(422, responseData.errmsg);
+
+      } else if (result.status < 500 && result.status >= 400){
+        // 400 error
+        console.log(result.response);
+        populateErrorElement(result.status, result.response);
+
+      } else if (result.status >= 500) {
+        // 500 error
+        console.log(result.response);
+        populateErrorElement(result.status, result.response);
+      };
     });
     return false;
   };
+  var populateErrorElement = function(statusCode, message) {
+    var p = general.createElementWithProp('p', {});
+    p.textContent = message;
+    var h2 = general.createElementWithProp('h2', {});
+    h2.textContent = statusCode + '!';
+    general.removeChildren(result_div)
+    result_div.appendChild(h2);
+    result_div.appendChild(p);
+  }
   new_kegerator_form.addEventListener('submit', kegeratorSubmitEvent);

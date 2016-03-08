@@ -1,0 +1,633 @@
+.percentage {
+  text-align: center;
+  background-color: white;
+  position: relative;
+  min-height: 30px;
+}
+
+#pour-loading > .percentage {
+  height: 100%;
+  line-height: 400px;
+  font-size: 4em;
+}
+
+.percentage > .bar {
+  height: 100%;
+  transition: width 0.1s linear;
+  background-color: black;
+  position: absolute;
+}
+
+.percentage::after {
+  font-family: sans-serif;
+  font-size: 200%;
+  color: white;
+  mix-blend-mode: difference;
+}
+
+div[value="0"].percentage > .bar {
+  width: 0%;
+}
+div[value="0"].percentage::after {
+  content: "0%";
+}
+div[value="1"].percentage > .bar {
+  width: 1%;
+}
+div[value="1"].percentage::after {
+  content: "1%";
+}
+div[value="2"].percentage > .bar {
+  width: 2%;
+}
+div[value="2"].percentage::after {
+  content: "2%";
+}
+div[value="3"].percentage > .bar {
+  width: 3%;
+}
+div[value="3"].percentage::after {
+  content: "3%";
+}
+div[value="4"].percentage > .bar {
+  width: 4%;
+}
+div[value="4"].percentage::after {
+  content: "4%";
+}
+div[value="5"].percentage > .bar {
+  width: 5%;
+}
+div[value="5"].percentage::after {
+  content: "5%";
+}
+div[value="6"].percentage > .bar {
+  width: 6%;
+}
+div[value="6"].percentage::after {
+  content: "6%";
+}
+div[value="7"].percentage > .bar {
+  width: 7%;
+}
+div[value="7"].percentage::after {
+  content: "7%";
+}
+div[value="8"].percentage > .bar {
+  width: 8%;
+}
+div[value="8"].percentage::after {
+  content: "8%";
+}
+div[value="9"].percentage > .bar {
+  width: 9%;
+}
+div[value="9"].percentage::after {
+  content: "9%";
+}
+div[value="10"].percentage > .bar {
+  width: 10%;
+}
+div[value="10"].percentage::after {
+  content: "10%";
+}
+div[value="11"].percentage > .bar {
+  width: 11%;
+}
+div[value="11"].percentage::after {
+  content: "11%";
+}
+div[value="12"].percentage > .bar {
+  width: 12%;
+}
+div[value="12"].percentage::after {
+  content: "12%";
+}
+div[value="13"].percentage > .bar {
+  width: 13%;
+}
+div[value="13"].percentage::after {
+  content: "13%";
+}
+div[value="14"].percentage > .bar {
+  width: 14%;
+}
+div[value="14"].percentage::after {
+  content: "14%";
+}
+div[value="15"].percentage > .bar {
+  width: 15%;
+}
+div[value="15"].percentage::after {
+  content: "15%";
+}
+div[value="16"].percentage > .bar {
+  width: 16%;
+}
+div[value="16"].percentage::after {
+  content: "16%";
+}
+div[value="17"].percentage > .bar {
+  width: 17%;
+}
+div[value="17"].percentage::after {
+  content: "17%";
+}
+div[value="18"].percentage > .bar {
+  width: 18%;
+}
+div[value="18"].percentage::after {
+  content: "18%";
+}
+div[value="19"].percentage > .bar {
+  width: 19%;
+}
+div[value="19"].percentage::after {
+  content: "19%";
+}
+div[value="20"].percentage > .bar {
+  width: 20%;
+}
+div[value="20"].percentage::after {
+  content: "20%";
+}
+div[value="21"].percentage > .bar {
+  width: 21%;
+}
+div[value="21"].percentage::after {
+  content: "21%";
+}
+div[value="22"].percentage > .bar {
+  width: 22%;
+}
+div[value="22"].percentage::after {
+  content: "22%";
+}
+div[value="23"].percentage > .bar {
+  width: 23%;
+}
+div[value="23"].percentage::after {
+  content: "23%";
+}
+div[value="24"].percentage > .bar {
+  width: 24%;
+}
+div[value="24"].percentage::after {
+  content: "24%";
+}
+div[value="25"].percentage > .bar {
+  width: 25%;
+}
+div[value="25"].percentage::after {
+  content: "25%";
+}
+div[value="26"].percentage > .bar {
+  width: 26%;
+}
+div[value="26"].percentage::after {
+  content: "26%";
+}
+div[value="27"].percentage > .bar {
+  width: 27%;
+}
+div[value="27"].percentage::after {
+  content: "27%";
+}
+div[value="28"].percentage > .bar {
+  width: 28%;
+}
+div[value="28"].percentage::after {
+  content: "28%";
+}
+div[value="29"].percentage > .bar {
+  width: 29%;
+}
+div[value="29"].percentage::after {
+  content: "29%";
+}
+div[value="30"].percentage > .bar {
+  width: 30%;
+}
+div[value="30"].percentage::after {
+  content: "30%";
+}
+div[value="31"].percentage > .bar {
+  width: 31%;
+}
+div[value="31"].percentage::after {
+  content: "31%";
+}
+div[value="32"].percentage > .bar {
+  width: 32%;
+}
+div[value="32"].percentage::after {
+  content: "32%";
+}
+div[value="33"].percentage > .bar {
+  width: 33%;
+}
+div[value="33"].percentage::after {
+  content: "33%";
+}
+div[value="34"].percentage > .bar {
+  width: 34%;
+}
+div[value="34"].percentage::after {
+  content: "34%";
+}
+div[value="35"].percentage > .bar {
+  width: 35%;
+}
+div[value="35"].percentage::after {
+  content: "35%";
+}
+div[value="36"].percentage > .bar {
+  width: 36%;
+}
+div[value="36"].percentage::after {
+  content: "36%";
+}
+div[value="37"].percentage > .bar {
+  width: 37%;
+}
+div[value="37"].percentage::after {
+  content: "37%";
+}
+div[value="38"].percentage > .bar {
+  width: 38%;
+}
+div[value="38"].percentage::after {
+  content: "38%";
+}
+div[value="39"].percentage > .bar {
+  width: 39%;
+}
+div[value="39"].percentage::after {
+  content: "39%";
+}
+div[value="40"].percentage > .bar {
+  width: 40%;
+}
+div[value="40"].percentage::after {
+  content: "40%";
+}
+div[value="41"].percentage > .bar {
+  width: 41%;
+}
+div[value="41"].percentage::after {
+  content: "41%";
+}
+div[value="42"].percentage > .bar {
+  width: 42%;
+}
+div[value="42"].percentage::after {
+  content: "42%";
+}
+div[value="43"].percentage > .bar {
+  width: 43%;
+}
+div[value="43"].percentage::after {
+  content: "43%";
+}
+div[value="44"].percentage > .bar {
+  width: 44%;
+}
+div[value="44"].percentage::after {
+  content: "44%";
+}
+div[value="45"].percentage > .bar {
+  width: 45%;
+}
+div[value="45"].percentage::after {
+  content: "45%";
+}
+div[value="46"].percentage > .bar {
+  width: 46%;
+}
+div[value="46"].percentage::after {
+  content: "46%";
+}
+div[value="47"].percentage > .bar {
+  width: 47%;
+}
+div[value="47"].percentage::after {
+  content: "47%";
+}
+div[value="48"].percentage > .bar {
+  width: 48%;
+}
+div[value="48"].percentage::after {
+  content: "48%";
+}
+div[value="49"].percentage > .bar {
+  width: 49%;
+}
+div[value="49"].percentage::after {
+  content: "49%";
+}
+div[value="50"].percentage > .bar {
+  width: 50%;
+}
+div[value="50"].percentage::after {
+  content: "50%";
+}
+div[value="51"].percentage > .bar {
+  width: 51%;
+}
+div[value="51"].percentage::after {
+  content: "51%";
+}
+div[value="52"].percentage > .bar {
+  width: 52%;
+}
+div[value="52"].percentage::after {
+  content: "52%";
+}
+div[value="53"].percentage > .bar {
+  width: 53%;
+}
+div[value="53"].percentage::after {
+  content: "53%";
+}
+div[value="54"].percentage > .bar {
+  width: 54%;
+}
+div[value="54"].percentage::after {
+  content: "54%";
+}
+div[value="55"].percentage > .bar {
+  width: 55%;
+}
+div[value="55"].percentage::after {
+  content: "55%";
+}
+div[value="56"].percentage > .bar {
+  width: 56%;
+}
+div[value="56"].percentage::after {
+  content: "56%";
+}
+div[value="57"].percentage > .bar {
+  width: 57%;
+}
+div[value="57"].percentage::after {
+  content: "57%";
+}
+div[value="58"].percentage > .bar {
+  width: 58%;
+}
+div[value="58"].percentage::after {
+  content: "58%";
+}
+div[value="59"].percentage > .bar {
+  width: 59%;
+}
+div[value="59"].percentage::after {
+  content: "59%";
+}
+div[value="60"].percentage > .bar {
+  width: 60%;
+}
+div[value="60"].percentage::after {
+  content: "60%";
+}
+div[value="61"].percentage > .bar {
+  width: 61%;
+}
+div[value="61"].percentage::after {
+  content: "61%";
+}
+div[value="62"].percentage > .bar {
+  width: 62%;
+}
+div[value="62"].percentage::after {
+  content: "62%";
+}
+div[value="63"].percentage > .bar {
+  width: 63%;
+}
+div[value="63"].percentage::after {
+  content: "63%";
+}
+div[value="64"].percentage > .bar {
+  width: 64%;
+}
+div[value="64"].percentage::after {
+  content: "64%";
+}
+div[value="65"].percentage > .bar {
+  width: 65%;
+}
+div[value="65"].percentage::after {
+  content: "65%";
+}
+div[value="66"].percentage > .bar {
+  width: 66%;
+}
+div[value="66"].percentage::after {
+  content: "66%";
+}
+div[value="67"].percentage > .bar {
+  width: 67%;
+}
+div[value="67"].percentage::after {
+  content: "67%";
+}
+div[value="68"].percentage > .bar {
+  width: 68%;
+}
+div[value="68"].percentage::after {
+  content: "68%";
+}
+div[value="69"].percentage > .bar {
+  width: 69%;
+}
+div[value="69"].percentage::after {
+  content: "69%";
+}
+div[value="70"].percentage > .bar {
+  width: 70%;
+}
+div[value="70"].percentage::after {
+  content: "70%";
+}
+div[value="71"].percentage > .bar {
+  width: 71%;
+}
+div[value="71"].percentage::after {
+  content: "71%";
+}
+div[value="72"].percentage > .bar {
+  width: 72%;
+}
+div[value="72"].percentage::after {
+  content: "72%";
+}
+div[value="73"].percentage > .bar {
+  width: 73%;
+}
+div[value="73"].percentage::after {
+  content: "73%";
+}
+div[value="74"].percentage > .bar {
+  width: 74%;
+}
+div[value="74"].percentage::after {
+  content: "74%";
+}
+div[value="75"].percentage > .bar {
+  width: 75%;
+}
+div[value="75"].percentage::after {
+  content: "75%";
+}
+div[value="76"].percentage > .bar {
+  width: 76%;
+}
+div[value="76"].percentage::after {
+  content: "76%";
+}
+div[value="77"].percentage > .bar {
+  width: 77%;
+}
+div[value="77"].percentage::after {
+  content: "77%";
+}
+div[value="78"].percentage > .bar {
+  width: 78%;
+}
+div[value="78"].percentage::after {
+  content: "78%";
+}
+div[value="79"].percentage > .bar {
+  width: 79%;
+}
+div[value="79"].percentage::after {
+  content: "79%";
+}
+div[value="80"].percentage > .bar {
+  width: 80%;
+}
+div[value="80"].percentage::after {
+  content: "80%";
+}
+div[value="81"].percentage > .bar {
+  width: 81%;
+}
+div[value="81"].percentage::after {
+  content: "81%";
+}
+div[value="82"].percentage > .bar {
+  width: 82%;
+}
+div[value="82"].percentage::after {
+  content: "82%";
+}
+div[value="83"].percentage > .bar {
+  width: 83%;
+}
+div[value="83"].percentage::after {
+  content: "83%";
+}
+div[value="84"].percentage > .bar {
+  width: 84%;
+}
+div[value="84"].percentage::after {
+  content: "84%";
+}
+div[value="85"].percentage > .bar {
+  width: 85%;
+}
+div[value="85"].percentage::after {
+  content: "85%";
+}
+div[value="86"].percentage > .bar {
+  width: 86%;
+}
+div[value="86"].percentage::after {
+  content: "86%";
+}
+div[value="87"].percentage > .bar {
+  width: 87%;
+}
+div[value="87"].percentage::after {
+  content: "87%";
+}
+div[value="88"].percentage > .bar {
+  width: 88%;
+}
+div[value="88"].percentage::after {
+  content: "88%";
+}
+div[value="89"].percentage > .bar {
+  width: 89%;
+}
+div[value="89"].percentage::after {
+  content: "89%";
+}
+div[value="90"].percentage > .bar {
+  width: 90%;
+}
+div[value="90"].percentage::after {
+  content: "90%";
+}
+div[value="91"].percentage > .bar {
+  width: 91%;
+}
+div[value="91"].percentage::after {
+  content: "91%";
+}
+div[value="92"].percentage > .bar {
+  width: 92%;
+}
+div[value="92"].percentage::after {
+  content: "92%";
+}
+div[value="93"].percentage > .bar {
+  width: 93%;
+}
+div[value="93"].percentage::after {
+  content: "93%";
+}
+div[value="94"].percentage > .bar {
+  width: 94%;
+}
+div[value="94"].percentage::after {
+  content: "94%";
+}
+div[value="95"].percentage > .bar {
+  width: 95%;
+}
+div[value="95"].percentage::after {
+  content: "95%";
+}
+div[value="96"].percentage > .bar {
+  width: 96%;
+}
+div[value="96"].percentage::after {
+  content: "96%";
+}
+div[value="97"].percentage > .bar {
+  width: 97%;
+}
+div[value="97"].percentage::after {
+  content: "97%";
+}
+div[value="98"].percentage > .bar {
+  width: 98%;
+}
+div[value="98"].percentage::after {
+  content: "98%";
+}
+div[value="99"].percentage > .bar {
+  width: 99%;
+}
+div[value="99"].percentage::after {
+  content: "99%";
+}
+div[value="100"].percentage > .bar {
+  width: 100%;
+}
+div[value="100"].percentage::after {
+  content: "100%";
+}

@@ -8,16 +8,25 @@ var general = {
     return elem;
   },
 
-  // promisify xmlhttprequest
-  makeRequest : function(url, method, data, updateFunc) {
-    var contentType = "application/json";
-    if(data && data.constructor && data.constructor === FormData) {
-      contentType = "application/x-www-form-urlencoded";
+  // remove children from dom element
+  removeChildren : function(element) {
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
     }
+  },
+
+  // promisify xmlhttprequest
+  makeRequest : function(url, method, data, updateFunc, alternativeEncoding) {
     return new Promise(function(resolve, reject) {
       var request = new XMLHttpRequest();
       request.open(method, url, true);
-      request.setRequestHeader("Content-Type", contentType);
+      if(alternativeEncoding === null) {
+        // do nothing
+      } else if (alternativeEncoding) {
+        request.setRequestHeader("Content-Type", alternativeEncoding);
+      } else {
+        request.setRequestHeader("Content-Type", "application/json");
+      }
       request.onload = function() {
         if (request.status >= 200 && request.status < 400) {
           return resolve(request);

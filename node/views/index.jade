@@ -4,7 +4,7 @@ block content
   .wrapper.loading#wrapper
     .outer#index(hash-url="index", static=true)
       .inner
-        a(href="/#/option")#main.btn.btn-default POUR
+        a(href="/#/option").main.btn.btn-default POUR
 
     .outer#option(hash-url="option", static=true)
       .inner
@@ -16,6 +16,13 @@ block content
       .inner
         div
           +loading_beer
+
+    .outer#pouring(hash-url="pouring", static=true)
+      .inner
+        div#pour-loading
+          .percentage#pour-percentage(value="0")
+            .bar
+
 
   #controls
     select#transition-type

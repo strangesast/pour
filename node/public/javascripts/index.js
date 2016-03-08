@@ -6,6 +6,7 @@ var hashChangeListenerEvent = function(evt) {
   var hashUrl = window.location.hash.slice(1);
   loadByHash(hashUrl);
 };
+
 window.addEventListener('popstate', hashChangeListenerEvent);
 
 // call function after disabling hash listener

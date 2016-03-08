@@ -13,12 +13,6 @@ var mongoose = require('mongoose');
 var config = require('./config');
 
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
-var account = require('./routes/account');
-var hash = require('./routes/hash');
-var objects = require('./routes/objects');
-
 var app = express();
 
 // view engine setup
@@ -65,6 +59,12 @@ mongoose.connect(config.databaseUrl, function(err) {
   }
   return;
 });
+
+var routes = require('./routes/index');
+var users = require('./routes/users');
+var account = require('./routes/account');
+var hash = require('./routes/hash');
+var objects = require('./routes/objects');
 
 app.use('/', routes);
 app.use('/users', users);

@@ -24,7 +24,7 @@ fig.savefig('test.png')
 import asyncio
 import serial.aio
 
-arduino_port = '/dev/pts/26'
+arduino_port = '/dev/pts/12'
 address = ('127.0.0.1', 25000)
 
 socket_transports = []
@@ -51,7 +51,6 @@ class SocketOutput(asyncio.Protocol):
             loop.stop()
             return
 
-        print(len(serial_transports))
         for transport in serial_transports:
             transport.write(data)
 
@@ -72,7 +71,6 @@ class SerialOutput(asyncio.Protocol):
         self.current_read = ""
         serial_transports.append(self.transport)
         print('port opened at ', arduino_port)
-        transport.write(b'test')
 
     def data_received(self, data):
         self.current_read += data.decode()
@@ -81,9 +79,8 @@ class SerialOutput(asyncio.Protocol):
             full_message = s.pop(0)
             self.current_read = "\n".join(s)
 
-            print('data received from serial: ', repr(full_message))
             for transport in socket_transports:
-                transport.write(b'from serial: {}' + full_message)
+                transport.write(('from serial: "{}"\n'.format(repr(full_message))).encode())
 
     def connection_lost(self, exc):
         print('port closed')

@@ -28,6 +28,7 @@ String incomingString = "nothing yet";
 int welcomed = 0;
 
 void loop() {
+  Serial.flush();
   if( Serial.available() > 0 ) {
     incomingString = Serial.readStringUntil('\n');
     if(incomingString == "temps") {
@@ -35,6 +36,13 @@ void loop() {
       String tempString = getThreeTemps();
       Serial.print("update-temps: ");
       Serial.println(tempString);
+    } else if (incomingString == "pour") {
+      int count = 0;
+      while (count < 10) {
+        Serial.println(count);
+        count++;
+        delay(1000);
+      }
     } else {
       Serial.print("sent: ");
       Serial.println(incomingString);

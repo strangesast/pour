@@ -42,9 +42,7 @@ var loadByHash = function(raw_hashUrl) {
   // check that a view aleady exists
   var existingElement = wrapperElement.querySelector('[hash-url="' + hashUrl + '"]');
   var prom = Promise.resolve(hashUrl);
-  if(existingElement && existingElement.hasAttribute('static')) {
-    // if its static, set existingElement to active
-  } else {
+  if(!(existingElement && existingElement.hasAttribute('static'))) {
     // make request
     var fullUrl = '/hash/' + hashUrl;
     var html;
@@ -106,10 +104,64 @@ var loadByHash = function(raw_hashUrl) {
       return newHashUrl;
     });
   }
-  prom.then(function(hash) {
-    console.log("hash");
-    console.log(hash);
+  return prom.then(function(hash) {
     setActiveTo(hash, true);
+    updateSocketWithHash(hash);
+  });
+};
+
+var kegStatus = document.getElementById('keg-status');
+var updateKegStatus = function(kegerator) {
+  console.log(kegerator);
+  general.removeChildren(kegStatus);
+  var p = general.createElementWithProp('p', {});
+  p.textContent = kegerator.name + ' ';
+  var i = general.createElementWithProp('i', {});
+  i.textContent = kegerator.address + ':' + kegerator.port;
+  p.appendChild(i);
+  kegStatus.appendChild(p);
+};
+
+var socketConnection = null;
+var keg_id = "56de43d96b7b3d1c5c156eb5";
+
+var updateSocketWithHash = function(hash) {
+  var prom = Promise.resolve();
+  if(socketConnection === null) {
+    // set up socket connection
+    prom = new Promise(function(resolve, reject) {
+      socketConnection = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port + "/sockets");
+      socketConnection.onopen = function(evt) {
+        socketConnection.send(JSON.stringify({
+          activeKeg: keg_id
+        }));
+      };
+      socketConnection.onmessage = function(evt) {
+        var parsed;
+        try {
+          parsed = JSON.parse(evt.data);
+          console.log(parsed);
+
+          if(parsed.activeKeg) {
+            updateKegStatus(parsed.activeKeg);
+          }
+        } catch (e) {
+          // pass
+        }
+      };
+    });
+
+    //var interval = setInterval(function() {
+    //  console.log('requesting temperatures...');
+    //  socketConnection.send(JSON.stringify({
+    //    action: "temps"
+    //  }));
+    //}, 20000);
+  }
+  return prom.then(function() {
+    socketConnection.send(JSON.stringify({
+      currentHash: hash
+    }));
   });
 };
 

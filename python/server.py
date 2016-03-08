@@ -39,7 +39,7 @@ async def echo_handler(client):
             log('CLIENT: message received from "' + client.getpeername()[0] + '": "' + data.decode().strip() + '"')
 
             for each in clients:
-                await loop.sock_sendall(each, b'Got:'+ data)
+                await loop.sock_sendall(each, b'Got:'+ data + b'\r\n')
 
             for each in transports:
                 each.write(data)

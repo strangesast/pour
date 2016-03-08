@@ -5,7 +5,7 @@ if kegerators.length > 0
   div#kegerator-list-container.list-group
     for kegerator in kegerators
       div.list-group-item.clearfix.active
-        span=kegerator.name
+        | #{kegerator.name} (#{kegerator.id})
         button.btn.btn-default.glyphicon.glyphicon-cog.pull-right
 else
   div

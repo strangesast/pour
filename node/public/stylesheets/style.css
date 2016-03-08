@@ -97,6 +97,12 @@ html, body {
   right: 0;
 }
 
+#keg-status {
+  position: fixed;
+  top: 0;
+  right: 0;
+}
+
 .inner > .main {
   padding: 20px;
   font-size: 5em;

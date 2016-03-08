@@ -9,6 +9,12 @@ char tempone[15];
 char temptwo[15];
 char tempthr[15];
 
+float pourFunc(float x, float w, float h, int p) {
+  float y;
+  y = h*(1 - pow(2, p)*pow(1/w*x - 0.5, p));
+  return y;
+}
+
 String getThreeTemps() {
   //sensors.requestTemperatures();
   delay(1000);
@@ -37,10 +43,19 @@ void loop() {
       Serial.print("update-temps: ");
       Serial.println(tempString);
     } else if (incomingString == "pour") {
-      int count = 0;
-      while (count < 10) {
-        Serial.println(count);
-        count++;
+      float count = 0;
+      float rate = 0;
+      int tics = 0;
+      while (count < 51.00) {
+        Serial.print("pour_update: ");
+        Serial.print(count);
+        Serial.print(", ");
+        rate = pourFunc(count, 50.0, 10.0, 6);
+        Serial.print(rate);
+        Serial.print(", ");
+        tics += (int)rate;
+        Serial.println(tics);
+        count+=1.00;
         delay(1000);
       }
     } else {

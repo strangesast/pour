@@ -123,7 +123,7 @@ var updateKegStatus = function(kegerator) {
 };
 
 var socketConnection = null;
-var keg_id = "56de43d96b7b3d1c5c156eb5";
+var keg_id = "56df340403ec679609351f2e";
 
 var updateSocketWithHash = function(hash) {
   var prom = Promise.resolve();
@@ -133,11 +133,15 @@ var updateSocketWithHash = function(hash) {
       socketConnection = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port + "/sockets");
       socketConnection.onopen = function(evt) {
         socketConnection.send(JSON.stringify({
-          activeKeg: keg_id
+          action: 'activate_keg',
+          data: {
+            id: keg_id
+          }
         }));
       };
       socketConnection.onmessage = function(evt) {
         var parsed;
+        console.log(evt.data);
         try {
           parsed = JSON.parse(evt.data);
           console.log(parsed);

@@ -52,7 +52,8 @@ class SocketOutput(asyncio.Protocol):
             return
 
         for transport in serial_transports:
-            transport.write(data)
+            print('writing to serial...')
+            transport.write(('({} serial_transports) '.format(len(serial_transports)) + data.decode()).encode())
 
         self.transport.write(b'wrote: ' + data)
 
@@ -80,7 +81,8 @@ class SerialOutput(asyncio.Protocol):
             self.current_read = "\n".join(s)
 
             for transport in socket_transports:
-                transport.write(('from serial: "{}"\n'.format(repr(full_message))).encode())
+                print('writing to socket...')
+                transport.write(('({} socket_transports) from serial: "{}"\n'.format(len(socket_transports), repr(full_message))).encode())
 
     def connection_lost(self, exc):
         print('port closed')

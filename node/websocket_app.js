@@ -17,35 +17,83 @@ module.exports = function(server) {
   wss.on('connection', connectionListener);
 };
 
-var probeKegerator = function(address, port) {
-  return new Promise(function(resolve, reject) {
+// error factory for initial connection errors
+var initErrorFactory = function(reject_func) {
+  return function(err) {
+    reject_func(new Error(err));
+  };
+}
+
+var SocketConnection = function(id, client) {
+  console.log("new socket connection created");
+
+  client.on('data', function clientDataListener(data) {
+
+  });
+  client.on('close', function clientCloseListener() {
+
+  });
+  client.on('error', function clientErrorListener() {
+
+  });
+
+  this.id = id;
+  this.client = client;
+  SocketConnection.connections.push(this);
+}
+
+SocketConnection.connections = [];
+
+SocketConnection.createNew = function(port, host) {
+  var defaultTimeout = 15000; // 15 seconds
+  var timeoutPromise = new Promise(function(resolve, reject) {
+    setTimeout(function() {
+      var err = new Error('creation timed out after ' + defaultTimeout / 1000 + ' seconds');
+      err.code = 'TIMEOUT';
+      reject(err);
+    }, defaultTimeout);
+  });
+
+  var creationPromise = new Promise(function(resolve, reject) {
+    var initError = initErrorFactory(reject);
     var client = net.createConnection({
       port: port,
-      host: address
-    }, function() {
-      client.write('temps');
-    });
-    client.on('error', function(err) {
-      return reject(err);
-    });
-    client.on('data', function(data) {
-      var encoded = data.toString();
-      return setTimeout(function() {
-        client.end()
-        return resolve();
-      }, 2000);
-    });
+      host: host
+    }, function(resolve_func) {
+      return function() {
+        client.removeListener('error', initError);
+        return resolve_func(new SocketConnection(client));
+      };
+    }(resolve));
+
+    client.on('error', initError);
+  });
+
+  return Promise.race([timeoutPromise, creationPromise]);
+};
+
+var probeKegerator = function(address, port, timeout) {
+  var client, errFunc, sucFunc;
+  return SocketConnection.createNew(port, address).then(function(newSocketConnection) {
+    return newSocketConnection.client;
   });
 }
 
 var activateKeg = function(obj) {
-  Kegerator.findById(obj.id).then(function(kegerator) {
+  return Kegerator.findById(obj.id).then(function(kegerator) {
     var response = {kegerator: kegerator};
     if(kegerator) {
-      return probeKegerator(kegerator.address, kegerator.port).then(function(result) {
+      // probe with default timeout of one minute
+      return probeKegerator(kegerator.address, kegerator.port).then(function(client_result) {
         // probe succeeded
         response.message = 'probe succeeded';
         response.status = 'ok'
+
+        kegConnections[kegerator._id] = {
+          client: client_result,
+          lastProbed: Date.now()
+        };
+
         return response;
       }).catch(function(err) {
         // probe failed
@@ -59,6 +107,8 @@ var activateKeg = function(obj) {
       response.status = 'fail';
       return Promise.resolve(response);
     }
+  }).catch(function(mongo_err) {
+    console.log('mongo error');
   });
 };
 
@@ -90,11 +140,13 @@ var parseMessage = function(message, jsonOnly) {
   }
 };
 
-var messageListener = function(ws) {
+var messageListenerFactory = function(ws) {
   return function(message) {
     return parseMessage(message, true).then(function(result) {
+      console.log(result)
       if('action' in result) {
-        determineAction(result.action, result.data).then(function(action_result) {
+        return determineAction(result.action, result.data).then(function(action_result) {
+          console.log(action_result);
           console.log('HERE!');
           ws.send(JSON.stringify(action_result));
         });
@@ -107,7 +159,7 @@ var messageListener = function(ws) {
 };
 
 var connectionListener = function(ws) {
-  ws.on('message', messageListener(ws));
+  ws.on('message', messageListenerFactory(ws));
 }
 
 var connectionListener1 = function(ws) {

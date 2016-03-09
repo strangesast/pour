@@ -25,6 +25,14 @@ block content
 
 
   #keg-status
+    span#kegerator-status-indicator.glyphicon.glyphicon-refresh
+    if kegerators.length > 0
+      select#default-kegerator.form-control
+        for kegerator in kegerators
+          option(value=kegerator._id)=kegerator.name
+    else
+      select.form-control(disabled=true)
+        option No kegerators
 
   #controls
     select#transition-type

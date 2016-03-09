@@ -20,34 +20,48 @@ module.exports = function(server) {
 // error factory for initial connection errors
 var initErrorFactory = function(reject_func) {
   return function(err) {
-    reject_func(new Error(err));
+    reject_func(err);
   };
-}
+};
 
 var SocketConnection = function(id, client) {
   console.log("new socket connection created");
-
-  client.on('data', function clientDataListener(data) {
-
-  });
-  client.on('close', function clientCloseListener() {
-
-  });
-  client.on('error', function clientErrorListener() {
-
-  });
-
   this.id = id;
   this.client = client;
-  SocketConnection.connections.push(this);
-}
 
-SocketConnection.connections = [];
+  client.on('data', function(_this) {
+    return function(data) {
+      console.log('data');
+      console.log(data);
+    };
+  }(this));
+  client.on('close', function(_this) {
+    return function() {
+      console.log('socket closed');
+      delete SocketConnection.connections[_this.id];
+      console.log('close');
+    };
+  }(this));
+  client.on('error', function(_this) {
+    return function(error) {
+      console.log('error');
+      console.log(error);
+    };
+  }(this));
 
-SocketConnection.createNew = function(port, host) {
+  SocketConnection.connections[id] = this;
+};
+
+SocketConnection.connections = {};
+
+SocketConnection.createNew = function(id, port, host) {
+  console.log("attempting to create new");
+  if(id in SocketConnection.connections) {
+    throw new Error('duplicate id in connections');
+  }
   var defaultTimeout = 15000; // 15 seconds
   var timeoutPromise = new Promise(function(resolve, reject) {
-    setTimeout(function() {
+    return setTimeout(function() {
       var err = new Error('creation timed out after ' + defaultTimeout / 1000 + ' seconds');
       err.code = 'TIMEOUT';
       reject(err);
@@ -62,7 +76,7 @@ SocketConnection.createNew = function(port, host) {
     }, function(resolve_func) {
       return function() {
         client.removeListener('error', initError);
-        return resolve_func(new SocketConnection(client));
+        return resolve_func(new SocketConnection(id, client));
       };
     }(resolve));
 
@@ -72,22 +86,26 @@ SocketConnection.createNew = function(port, host) {
   return Promise.race([timeoutPromise, creationPromise]);
 };
 
-var probeKegerator = function(address, port, timeout) {
-  var client, errFunc, sucFunc;
-  return SocketConnection.createNew(port, address).then(function(newSocketConnection) {
-    return newSocketConnection.client;
-  });
-}
+var probeKegerator = function(id, address, port, timeout) {
+  if(id in SocketConnection.connections) {
+    return Promise.resolve(SocketConnection.connections[id].client);
+  } else {
+    return SocketConnection.createNew(id, port, address).then(function(newSocketConnection) {
+      console.log("client returned");
+      return newSocketConnection.client;
+    });
+  }
+};
 
 var activateKeg = function(obj) {
   return Kegerator.findById(obj.id).then(function(kegerator) {
-    var response = {kegerator: kegerator};
+    var response = {kegerator: kegerator, action: 'activate_keg'};
     if(kegerator) {
       // probe with default timeout of one minute
-      return probeKegerator(kegerator.address, kegerator.port).then(function(client_result) {
+      return probeKegerator(kegerator._id, kegerator.address, kegerator.port).then(function(client_result) {
         // probe succeeded
         response.message = 'probe succeeded';
-        response.status = 'ok'
+        response.status = 'ok';
 
         kegConnections[kegerator._id] = {
           client: client_result,
@@ -98,12 +116,12 @@ var activateKeg = function(obj) {
       }).catch(function(err) {
         // probe failed
         response.message = 'probe failed with code: "' + err.code + '"';
-        response.status = 'fail'
+        response.status = 'fail';
         return response;
       });
     } else {
       // not found
-      response.message = 'keg with id not found';
+      response.message = 'keg with id "' + obj.id + '"not found';
       response.status = 'fail';
       return Promise.resolve(response);
     }
@@ -116,7 +134,6 @@ var determineAction = function(actionName, data) {
   switch (actionName) {
     case "activate_keg":
       return activateKeg(data);
-      break;
     default: 
       return Promise.resolve({
         message: "unknown action"
@@ -143,11 +160,11 @@ var parseMessage = function(message, jsonOnly) {
 var messageListenerFactory = function(ws) {
   return function(message) {
     return parseMessage(message, true).then(function(result) {
-      console.log(result)
+      console.log(result);
       if('action' in result) {
         return determineAction(result.action, result.data).then(function(action_result) {
+          console.log('action result');
           console.log(action_result);
-          console.log('HERE!');
           ws.send(JSON.stringify(action_result));
         });
       } else {
@@ -160,7 +177,7 @@ var messageListenerFactory = function(ws) {
 
 var connectionListener = function(ws) {
   ws.on('message', messageListenerFactory(ws));
-}
+};
 
 var connectionListener1 = function(ws) {
   var loc = url.parse(ws.upgradeReq.url, true);

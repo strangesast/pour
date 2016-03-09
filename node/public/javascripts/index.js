@@ -1,6 +1,11 @@
 var wrapperElement = document.getElementById('wrapper');
 var transitionTypeElement = document.getElementById('transition-type');
+var defaultKegeratorElement = document.getElementById('default-kegerator');
+var kegeratorStatusElement = document.getElementById('kegerator-status-indicator');
 var transitionInProgress = false;
+var socketConnection = null;
+var keg_id = "56df340403ec679609351f2e";
+var defaultKegerator = null;
 
 var hashChangeListenerEvent = function(evt) {
   var hashUrl = window.location.hash.slice(1);
@@ -28,8 +33,47 @@ document.addEventListener('DOMContentLoaded', function() {
   if(hashUrl === ""){
     changeHashWithoutEvent('#/index');
   }
-  loadByHash(hashUrl);
+  loadByHash(hashUrl).then(function() {
+    defaultKegerator = defaultKegerator || localStorage.getItem('defaultKegerator');
+    if(defaultKegerator) {
+      defaultKegeratorElement.value = defaultKegerator;
+    }
+    if(socketConnection && defaultKegerator) {
+      socketConnection.send(JSON.stringify({
+        action: 'activate_keg',
+        data: {
+          id: defaultKegerator
+        }
+      }));
+    }
+  });
   wrapperElement.classList.remove('loading');
+});
+
+var updateKegeratorStatus = function(stat) {
+  console.log(stat);
+  if(stat === "ok") {
+    kegeratorStatusElement.classList.remove('glyphicon-refresh');
+    kegeratorStatusElement.classList.remove('glyphicon-remove');
+    kegeratorStatusElement.classList.add('glyphicon-ok');
+  } else {
+    kegeratorStatusElement.classList.remove('glyphicon-refresh');
+    kegeratorStatusElement.classList.remove('glyphicon-ok');
+    kegeratorStatusElement.classList.add('glyphicon-remove');
+  }
+};
+
+defaultKegeratorElement.addEventListener('change', function(evt) {
+  defaultKegerator = defaultKegeratorElement.value;
+  localStorage.setItem('defaultKegerator', defaultKegerator);
+  if(socketConnection && socketConnection.readyState == 1) {
+    socketConnection.send(JSON.stringify({
+      action: 'activate_keg',
+      data: {
+        id: defaultKegerator
+      }
+    }));
+  }
 });
 
 // load content at hash url
@@ -106,66 +150,64 @@ var loadByHash = function(raw_hashUrl) {
   }
   return prom.then(function(hash) {
     setActiveTo(hash, true);
-    updateSocketWithHash(hash);
+    return updateSocketWithHash(hash);
   });
 };
 
-var kegStatus = document.getElementById('keg-status');
-var updateKegStatus = function(kegerator) {
-  console.log(kegerator);
-  general.removeChildren(kegStatus);
-  var p = general.createElementWithProp('p', {});
-  p.textContent = kegerator.name + ' ';
-  var i = general.createElementWithProp('i', {});
-  i.textContent = kegerator.address + ':' + kegerator.port;
-  p.appendChild(i);
-  kegStatus.appendChild(p);
+var socketMessageEventListener = function(evt) {
+  var message = evt.data;
+  var parsedMessage = null;
+  try {
+    parsedMessage = JSON.parse(message);
+  } catch(e) {}
+
+  console.log(parsedMessage || message);
+  if(parsedMessage && 'action' in parsedMessage) {
+    switch (parsedMessage.action) {
+      case "activate_keg":
+        updateKegeratorStatus(parsedMessage.status);
+        break;
+      default:
+        console.log("unknown action");
+        return;
+    }
+  }
 };
 
-var socketConnection = null;
-var keg_id = "56df340403ec679609351f2e";
+var setupSocketConnection = function(url) {
+  return new Promise(function(resolve, reject) {
+    var initError = function (err) {return reject(err);};
+    var connection = new WebSocket(url);
+    connection.onerror = initError;
+    connection.onopen = function socketOpenEvent(evt) {
+      connection.removeEventListener('error', initError);
+      return resolve(connection);
+    };
+    connection.onmessage = socketMessageEventListener;
+  }).then(function(conn) {
+    conn.onerror = function(err) {
+      alert("websocket server disconnected, refresh to repair");
+    };
+    return conn;
+  });
+};
 
 var updateSocketWithHash = function(hash) {
-  var prom = Promise.resolve();
+  var socketSetupPromise = Promise.resolve();
   if(socketConnection === null) {
-    // set up socket connection
-    prom = new Promise(function(resolve, reject) {
-      socketConnection = new WebSocket("ws://" + window.location.hostname + ":" + window.location.port + "/sockets");
-      socketConnection.onopen = function(evt) {
-        socketConnection.send(JSON.stringify({
-          action: 'activate_keg',
-          data: {
-            id: keg_id
-          }
-        }));
-      };
-      socketConnection.onmessage = function(evt) {
-        var parsed;
-        console.log(evt.data);
-        try {
-          parsed = JSON.parse(evt.data);
-          console.log(parsed);
-
-          if(parsed.activeKeg) {
-            updateKegStatus(parsed.activeKeg);
-          }
-        } catch (e) {
-          // pass
-        }
-      };
+    var socketUrl = "ws://" + window.location.hostname + ":" + window.location.port + "/sockets";
+    socketSetupPromise = setupSocketConnection(socketUrl).then(function(connection) {
+      socketConnection = connection;
     });
-
-    //var interval = setInterval(function() {
-    //  console.log('requesting temperatures...');
-    //  socketConnection.send(JSON.stringify({
-    //    action: "temps"
-    //  }));
-    //}, 20000);
   }
-  return prom.then(function() {
+  return socketSetupPromise.then(function() {
     socketConnection.send(JSON.stringify({
       currentHash: hash
     }));
+  }).catch(function(err) {
+    // socket setup failed
+    alert("failed to connect to websocket server");
+    console.log(err);
   });
 };
 

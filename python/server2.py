@@ -24,7 +24,7 @@ fig.savefig('test.png')
 import asyncio
 import serial.aio
 
-arduino_port = '/dev/pts/24'
+arduino_port = '/dev/pts/12'
 address = ('127.0.0.1', 25000)
 
 socket_transports = []

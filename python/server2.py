@@ -1,33 +1,60 @@
 #pourfunc
 # y = height_coeff*(1 - 2^pow * ( 1 / width_coeff * x  - 1/2)^pow)
 
-"""
 from __future__ import division
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-def y(x, h=1, w=1, p=6):
-    return h*(1 - 2**p * ( 1 / w * x - 1/2 )**p)
-    
-
-x = np.arange(0, 1+0.01, 0.01)
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.plot(x, y(x))
-
-fig.savefig('test.png')
-"""
+#def y(x, h=1, w=1, p=6):
+#    return h*(1 - 2**p * ( 1 / w * x - 1/2 )**p)
+#    
+#
+#x = np.arange(0, 1+0.01, 0.01)
+#
+#fig = plt.figure()
+#ax = fig.add_subplot(111)
+#ax.plot(x, y(x))
+#
+#fig.savefig('test.png')
 
 import asyncio
 import serial.aio
 
-arduino_port = '/dev/pts/12'
+arduino_port = '/dev/pts/24'
 address = ('127.0.0.1', 25000)
 
 socket_transports = []
+
+def clean(text):
+    return [x.rstrip(',') for x in text.strip().split(' ')[1:]]
+
+def grapher():
+    t = []
+    v = []
+    x = []
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax2 = ax.twinx()
+
+    print('initializing grapher...');
+    while True:
+        data_pts = yield;
+        print('data!')
+        ti, vi, xi = clean(data_pts)
+        t.append(float(ti))
+        v.append(float(vi))
+        x.append(int(xi))
+        if len(t) > 40:
+            ax.plot(t, x)
+            ax2.plot(t, v)
+            fig.savefig('test.png')
+
+g = grapher()
+g.send(None)
+
 
 class SocketOutput(asyncio.Protocol):
     print("Listening at {}".format(address))
@@ -51,9 +78,9 @@ class SocketOutput(asyncio.Protocol):
             loop.stop()
             return
 
-        for transport in serial_transports:
+        for sertransport in serial_transports:
             print('writing to serial...')
-            transport.write(('({} serial_transports) '.format(len(serial_transports)) + data.decode()).encode())
+            sertransport.write(message.encode())
 
         self.transport.write(b'wrote: ' + data)
 
@@ -80,9 +107,12 @@ class SerialOutput(asyncio.Protocol):
             full_message = s.pop(0)
             self.current_read = "\n".join(s)
 
-            for transport in socket_transports:
+            #if 'pour_update' in full_message:
+            #    g.send(full_message)
+
+            for socktransport in socket_transports:
                 print('writing to socket...')
-                transport.write(('({} socket_transports) from serial: "{}"\n'.format(len(socket_transports), repr(full_message))).encode())
+                socktransport.write(('message from serial: "' + repr(full_message) + '"\n').encode())
 
     def connection_lost(self, exc):
         print('port closed')

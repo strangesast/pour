@@ -17,7 +17,7 @@ float pourFunc(float x, float w, float h, int p) {
 
 String getThreeTemps() {
   //sensors.requestTemperatures();
-  delay(1000);
+  delay(500);
   dtostrf(18.1114, 4, 4, tempone);
   dtostrf(19.2831, 4, 4, temptwo);
   dtostrf(20.0012, 4, 4, tempthr);
@@ -37,16 +37,22 @@ void loop() {
   Serial.flush();
   if( Serial.available() > 0 ) {
     incomingString = Serial.readStringUntil('\n');
-    if(incomingString == "temps") {
+    Serial.println(incomingString.substring(0, 4));
+    if(incomingString== "temps") {
       Serial.print("fetching temps...\n");
       String tempString = getThreeTemps();
       Serial.print("update-temps: ");
       Serial.println(tempString);
-    } else if (incomingString == "pour") {
+    } else if (incomingString== "pour") {
       float count = 0;
       float rate = 0;
       int tics = 0;
+      Serial.println("pour_update: started");
       while (count < 51.00) {
+        if( Serial.available() > 0 ) {
+          Serial.println("pour_update: canceled");
+          break;
+        }
         Serial.print("pour_update: ");
         Serial.print(count);
         Serial.print(", ");
@@ -58,6 +64,7 @@ void loop() {
         count+=1.00;
         delay(1000);
       }
+      Serial.println("pour_update: finished");
     } else {
       Serial.print("sent: ");
       Serial.println(incomingString);

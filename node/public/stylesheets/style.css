@@ -174,3 +174,7 @@ html, body {
   height: 400px;
   background: white;
 }
+
+.list-heading {
+  width: 100%;
+}

@@ -1,0 +1,52 @@
+.list-heading
+  if accounts.length > 0
+    div#account-list-container.list-group
+      for account in accounts
+        div(account-id="#{account._id}").list-group-item.clearfix
+          | #{account.username}
+          button.btn.btn-default.glyphicon.glyphicon-cog.pull-right
+  else
+    div
+      p No accounts
+
+script().
+  (function() {
+    var accountListContainer = document.getElementById('account-list-container');
+    var children = accountListContainer.children;
+    var ids = [];
+    var id;
+    for(var i=0; i < children.length; i++) {
+      var child = children[i];
+      id = child.getAttribute('account-id');
+      ids.push(id);
+    }
+    var getImage = function(index) {
+      id = ids[index];
+      return general.makeRequest('/objects/accounts/' + id, 'GET').then(function(request) {
+        var parsed = JSON.parse(request.response);
+        var account = parsed.account;
+        if(account && account.profileImage) {
+          var data = account.profileImage.data.data;
+          var ar = new Uint8Array(data);
+          var blob = new Blob([ar], {type: 'image/jpeg'});
+          addImageAndLoadFromBlob(document.querySelector('[account-id="' + id + '"]'), blob);
+        }
+        if(index + 1 < ids.length) {
+          return getImage(index + 1);
+        }
+        return Promise.resolve()
+      });
+    }
+    var addImageAndLoadFromBlob = function(parentElement, blob) {
+      console.log(parentElement);
+      var canvas = general.createElementWithProp('canvas', {});
+      var ctx = canvas.getContext('2d');
+      var img = new Image();
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+      }
+      img.src = URL.createObjectURL(blob);
+      parentElement.appendChild(canvas);
+    };
+    getImage(0);
+  })();

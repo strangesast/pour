@@ -1,6 +1,8 @@
 var express = require('express');
 var passport = require('passport');
 var Account = require('../models/account');
+var multer = require('multer');
+var upload = multer();
 var router = express.Router();
 
 router.use(function(req, res, next) {
@@ -20,13 +22,24 @@ router.get('/', function(req, res, next) {
 router.route('/register')
 .get(function(req, res, next) {
   return res.render('account/register');
-})
-.post(function(req, res, next) {
+});
+router.post('/register', upload.array('profileImage', 'profileImageFile'), function(req, res, next) {
   var admin = req.body.username === 'admin' ? true : false;
+  var buffer;
+  var mimet;
+  if(req.files && req.files.length > 0) {
+    buffer = req.files[0].buffer;
+    mimet = req.files[0].mimetype;
+  }
 
   return Account.register(new Account({
     username: req.body.username,
-    admin: admin
+    admin: admin,
+    profileImage: {
+      data: buffer,
+      mimet: mimet
+    }
+
   }), req.body.password, function(err, account) {
     if (err) {
       req.flash('error', 'Account already exists');

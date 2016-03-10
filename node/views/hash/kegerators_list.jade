@@ -1,12 +1,12 @@
 link(rel='stylesheet' href='/stylesheets/kegerator.css')
-.kegerator-heading
+.list-heading
   h1 Kegerators
-if kegerators.length > 0
-  div#kegerator-list-container.list-group
-    for kegerator in kegerators
-      div.list-group-item.clearfix.active
-        | #{kegerator.name} (#{kegerator.id})
-        button.btn.btn-default.glyphicon.glyphicon-cog.pull-right
-else
-  div
-    p No kegerators
+  if kegerators.length > 0
+    div#kegerator-list-container.list-group
+      for kegerator in kegerators
+        div.list-group-item.clearfix.active
+          | #{kegerator.name} (#{kegerator.id})
+          button.btn.btn-default.glyphicon.glyphicon-cog.pull-right
+  else
+    div
+      p No kegerators

@@ -1,6 +1,6 @@
 link(rel='stylesheet' href='/stylesheets/login.css')
 .register-container
-  form.form-signin(role='form', action='./register', method='POST')
+  form#register-form-element.form-signin(role='form', action='./register', method='POST')
     h2.form-signin-heading Register
     .form-group
       label(for='register-username') Username
@@ -8,7 +8,6 @@ link(rel='stylesheet' href='/stylesheets/login.css')
     .form-group
       label(for='register-password') Password
       input.form-control#register-password(type='password', name='password', placeholder='password')
-    button.btn.btn-primary.btn-block(type='submit') Submit
   
     p Choose an image
     .form-group
@@ -16,16 +15,75 @@ link(rel='stylesheet' href='/stylesheets/login.css')
       p
         span.btn.btn-default.btn-file
           | Choose image
-          input#register-profile-image(type="file", accept='image/*', capture='camera')
-    div.default-images
-  
-    h3.form-signin-heading Have an account?
-    p
-      a.btn.btn-default.btn-block(href='/#/account/login') Log in
-    p
-      input(action="action", type="button", value="Back", onclick="window.history.go(-1); return false").btn.btn-default
-  
-    if errors
-      if errors.length
-        h2 Errors!
-        p=errors
+          input#register-profile-image(name="profileImageFile", type="file", accept='image/*', capture='camera')
+      p
+        //img#profile-image-preview(src="/images/kitten.jpg" width=130 height=130)
+        canvas#profile-image-preview(width=130, height=130)
+    button.btn.btn-primary.btn-block(type='submit') Submit
+
+  div.default-images
+
+  h3.form-signin-heading Have an account?
+  p
+    a.btn.btn-default.btn-block(href='/#/account/login') Log in
+  p
+    input(action="action", type="button", value="Back", onclick="window.history.go(-1); return false").btn.btn-default
+
+  if errors
+    if errors.length
+      h2 Errors!
+      p=errors
+
+
+script().
+  var profileImagePreview = document.getElementById('profile-image-preview');
+  var registerProfileImageInputElement = document.getElementById('register-profile-image');
+  var registerFormElement = document.getElementById('register-form-element');
+  var imageInputChangeEvent = function(evt) {
+    var file = registerProfileImageInputElement.files[0];
+    if(!file) {
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(load_evt) {
+      drawImageOnCanvas(reader.result, profileImagePreview);
+    };
+    reader.readAsDataURL(file);
+  };
+  registerProfileImageInputElement.addEventListener('change', imageInputChangeEvent);
+
+  var drawImageOnCanvas = function(imageSource, canvas) {
+    var img = new Image();
+    img.src = imageSource;
+
+    var ctx = canvas.getContext('2d')
+    img.onload = function() {
+      ctx.save();
+      var s = canvas.width / img.width;
+      ctx.scale(s, s);
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+    }
+
+  };
+
+  (function() {
+    drawImageOnCanvas('/images/kitten.jpg', profileImagePreview);
+  })()
+
+  registerFormElement.addEventListener('submit', function(evt) {
+    evt.preventDefault();
+
+    var formData = new FormData(registerFormElement);
+    var dataURL = profileImagePreview.toDataURL('image/jpeg', 0.5);
+    var blob = general.dataURItoBlob(dataURL);
+    formData.append("profileImage", blob);
+
+    general.makeRequest('/account/register', 'POST', formData, null, null).then(function(request) {
+      console.log(request);
+      window.location = '/#/pour';
+    });
+
+
+    return false;
+  });

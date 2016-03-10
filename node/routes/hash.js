@@ -12,7 +12,10 @@ router.use(function(req, res, next) {
 });
 
 router.all('/pour', function(req, res, next) {
-  if(req.user || req.query.anonymous) {
+  if(req.user && req.query.anonymous) {
+    return res.redirect('/hash/pour');
+
+  } else if(req.user || req.query.anonymous) {
     return res.render('hash/pour', function(err, html) {
       return res.json({
         html: html,
@@ -83,6 +86,20 @@ router.get('/kegerators/new', function(req, res, next) {
     return res.json({
       html: html,
       hash_id: req.hash_id
+    });
+  });
+});
+
+router.get('/accounts/list', function(req, res, next) {
+  return Account.find({}).then(function(accounts) {
+    return res.render('hash/accounts_list', {accounts: accounts}, function(err, html) {
+      if(err) {
+        return next(err);
+      }
+      return res.json({
+        html: html,
+        hash_id: req.hash_id
+      });
     });
   });
 });

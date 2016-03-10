@@ -2,9 +2,7 @@
   flex-grow: 1;
   overflow: hidden;
 }
-.kegerator-heading {
-  width: 100%;
-}
+
 #kegerator-list-container {
   flex-grow: 1;
 }

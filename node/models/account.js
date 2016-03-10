@@ -8,6 +8,10 @@ Account = new Schema({
   admin: {
     type: Boolean,
     default: false
+  },
+  profileImage: {
+    data: Buffer,
+    mimeType: String
   }
 });
 

@@ -104,21 +104,31 @@ def make_and_upload_sim_code(sim_loc):
     return exit_code
 
 
-def start_serial_connection(pts, connection_made_future):
+def start_serial_connection(name, pts, connection_made_future):
     print('starting serial connection with {}...'.format(repr(pts)))
 
-    coro = serial.aio.create_serial_connection(
+    yield from serial.aio.create_serial_connection(
             asyncio.get_event_loop(),
-            lambda: SerialProtocol(pts, connection_made_future),
+            lambda: SerialProtocol(name, pts, connection_made_future),
             port=pts,
             baudrate=9600)
 
-    return (yield from coro)
+    print('waiting for connection...')
+    return (yield from connection_made_future)
 
+
+def parse_full_line(port_from, line):
+    if 'update-temps' in line:
+        match = re.findall('update-temps:\s([\d\.,\s]+)', line.strip())
+        if len(match):
+            temps = map(float, match[0].split(', '))
+            print('temps!')
+            print(temps)
 
 class SerialProtocol(asyncio.Protocol):
-    def __init__(self, port_name, connection_established_future):
-        self.port_name = port_name
+    def __init__(self, name, port, connection_established_future):
+        self.port = port
+        self.name = name
         self.connection_established_future = connection_established_future
         self.current_data = bytearray()
 
@@ -134,11 +144,12 @@ class SerialProtocol(asyncio.Protocol):
         parsed = self.current_data.decode()
         spl = parsed.split('\n')
         while len(spl) > 1:
-            print('line from {}'.format(repr(self.port_name)))
-            print(repr(spl.pop(0)))
+            line = spl.pop(0)
+            parse_full_line(self.port, line)
+            text = 'line from {} ({}): {}'.format(repr(self.name), self.port, repr(line))
+            print(text)
 
         self.current_data = spl[0].encode()
-        #self.transport.close()
 
     def connection_lost(self, exc):
         print('port closed')
@@ -147,11 +158,12 @@ class SerialProtocol(asyncio.Protocol):
     transports = []
 
 def get_temps(delay):
-    print('sleeping for {}s'.format(delay))
-    yield from asyncio.sleep(delay)
-    print('writing...')
-    for transport in SerialProtocol.transports:
-        transport.write(b'temps\n')
+    while True:
+        print('sleeping for {}s'.format(delay))
+        yield from asyncio.sleep(delay)
+        print('writing...')
+        for transport in SerialProtocol.transports:
+            transport.write(b'temps\n')
 
     return
 
@@ -172,12 +184,11 @@ def main():
 
     con_fut = asyncio.Future()
 
-    yield from asyncio.ensure_future(start_serial_connection(pts, con_fut))
+    name = 'testing port'
+    yield from asyncio.ensure_future(start_serial_connection(name, pts, con_fut))
 
-    print('waiting...')
-    yield from con_fut
-
-    yield from get_temps(5)
+    # repeatedly get temps every 10s
+    yield from asyncio.ensure_future(get_temps(10))
 
     yield from simulator_proc
 

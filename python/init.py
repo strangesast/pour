@@ -1,18 +1,9 @@
 import asyncio
 import re
 import asyncio.subprocess
-from asyncio.subprocess import PIPE, STDOUT
+from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
 import sys
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+import serial.aio
 
 path = "/home/samuel/Packages/simavr/examples/board_simduino"
 
@@ -20,15 +11,21 @@ unbuf = ['stdbuf', '-oL', '-eL']
 sim_command = unbuf + ['./obj-x86_64-linux-gnu/simduino.elf']
 
 pat = re.compile('\/dev\/pts\/\d+')
+pat = re.compile('((?P<sim>\/tmp\/.+?)\s)|(?P<pts>\/dev\/pts\/\d+)')
 
 def find_match_in_iter(itr, reg):
+    result = {}
     for each in itr:
-        m = reg.findall(each)
-        if len(m) > 0:
-            return m[0]
+        m = [m.groupdict() for m in reg.finditer(each)]
+        for match in m:
+            for key, val in match.items():
+                if val is not None:
+                    result[key] = val
+
+    return result
 
 def create_process_with_command(command, cwd=None):
-    return asyncio.create_subprocess_exec(*command, cwd=cwd,
+    return create_subprocess_exec(*command, cwd=cwd,
             stdout=PIPE, stderr=STDOUT)
 
 
@@ -42,9 +39,9 @@ def get_line_until_timeout(process, timeout=1.0, prnt=False):
             line = (yield from task).decode()
             if not line: break
             if prnt: print("{}{}{}".format(
-                bcolors.OKGREEN,
+                '\033[92m',
                 line.strip(),
-                bcolors.ENDC))
+                '\033[0m'))
             lines.append(line)
         except asyncio.TimeoutError:
             break
@@ -62,8 +59,8 @@ def setup_sim(tty_future):
 
     pts = find_match_in_iter(all_data, pat)
 
-    if pts is not None:
-        print('got {}'.format(repr(pts)))
+    if pts:
+        print('got {} '.format(pts['pts']))
         tty_future.set_result(pts)
     else:
         print('FAILED')
@@ -81,20 +78,22 @@ def upload_firmware():
 
 
 @asyncio.coroutine
-def make_and_upload_sim_code(pts_loc):
+def make_and_upload_sim_code(sim_loc):
+    print('building firmware...')
+
     make_command = ['make']
     make_path = '../arduino/testing'
-    print('building firmware...')
     make_create = create_process_with_command(make_command, make_path)
     proc = yield from make_create
     all_data = yield from get_line_until_timeout(proc, 2.0, True)
-
     exit_code = yield from proc.wait()
 
-    upload_command = unbuf + ['avrdude', '-p', 'm328p', '-c', 'arduino', '-P', '/tmp/simavr-uart0', '-U', 'flash:w:build-uno/testing.hex']
-    upload_path = '../arduino/testing'
-
     print('uploading firmware...')
+
+    upload_command = unbuf + ['avrdude', '-p', 'm328p', '-c', 'arduino',
+            '-P', sim_loc, '-U', 'flash:w:build-uno/testing.hex']
+
+    upload_path = '../arduino/testing'
     create = create_process_with_command(upload_command, upload_path)
     proc = yield from create
     all_data = yield from get_line_until_timeout(proc, 2.0, True)
@@ -103,7 +102,58 @@ def make_and_upload_sim_code(pts_loc):
 
     print('DONE')
     return exit_code
-   
+
+
+def start_serial_connection(pts, connection_made_future):
+    print('starting serial connection with {}...'.format(repr(pts)))
+
+    coro = serial.aio.create_serial_connection(
+            asyncio.get_event_loop(),
+            lambda: SerialProtocol(pts, connection_made_future),
+            port=pts,
+            baudrate=9600)
+
+    return (yield from coro)
+
+
+class SerialProtocol(asyncio.Protocol):
+    def __init__(self, port_name, connection_established_future):
+        self.port_name = port_name
+        self.connection_established_future = connection_established_future
+        self.current_data = bytearray()
+
+    def connection_made(self, transport):
+        if self.connection_established_future:
+            self.connection_established_future.set_result(True)
+        self.transport = transport
+        SerialProtocol.transports.append(transport)
+        print('port opened', transport)
+
+    def data_received(self, data):
+        self.current_data += data
+        parsed = self.current_data.decode()
+        spl = parsed.split('\n')
+        while len(spl) > 1:
+            print('line from {}'.format(repr(self.port_name)))
+            print(repr(spl.pop(0)))
+
+        self.current_data = spl[0].encode()
+        #self.transport.close()
+
+    def connection_lost(self, exc):
+        print('port closed')
+        SerialProtocol.transports.remove(transport)
+
+    transports = []
+
+def get_temps(delay):
+    print('sleeping for {}s'.format(delay))
+    yield from asyncio.sleep(delay)
+    print('writing...')
+    for transport in SerialProtocol.transports:
+        transport.write(b'temps\n')
+
+    return
 
 @asyncio.coroutine
 def main():
@@ -114,9 +164,20 @@ def main():
     # then possibly restart it
     simulator_proc = asyncio.ensure_future(setup_sim(fut))
 
-    pts = yield from fut
+    locs = yield from fut
+    pts = locs['pts']
+    sim = locs['sim']
 
-    yield from make_and_upload_sim_code(pts)
+    yield from make_and_upload_sim_code(sim)
+
+    con_fut = asyncio.Future()
+
+    yield from asyncio.ensure_future(start_serial_connection(pts, con_fut))
+
+    print('waiting...')
+    yield from con_fut
+
+    yield from get_temps(5)
 
     yield from simulator_proc
 

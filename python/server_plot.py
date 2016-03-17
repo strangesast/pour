@@ -1,21 +1,60 @@
+#pourfunc
+# y = height_coeff*(1 - 2^pow * ( 1 / width_coeff * x  - 1/2)^pow)
+
 from __future__ import division
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+#def y(x, h=1, w=1, p=6):
+#    return h*(1 - 2**p * ( 1 / w * x - 1/2 )**p)
+#    
+#
+#x = np.arange(0, 1+0.01, 0.01)
+#
+#fig = plt.figure()
+#ax = fig.add_subplot(111)
+#ax.plot(x, y(x))
+#
+#fig.savefig('test.png')
+
 import asyncio
-from asyncio import subprocess
 import serial.aio
 
 arduino_port = '/dev/pts/24'
 address = ('127.0.0.1', 25000)
 
-command = ['sh', 'start_simavr.sh']
-
-@asyncio.coroutine
-def monitor_command():
-    process = yield from asyncio.create_subprocess_exec(*command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    stdout, = yield from process.communicate()
-
-    print(stdout)
-
 socket_transports = []
+
+def clean(text):
+    return [x.rstrip(',') for x in text.strip().split(' ')[1:]]
+
+def grapher():
+    t = []
+    v = []
+    x = []
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax2 = ax.twinx()
+
+    print('initializing grapher...');
+    while True:
+        data_pts = yield;
+        print('data!')
+        ti, vi, xi = clean(data_pts)
+        t.append(float(ti))
+        v.append(float(vi))
+        x.append(int(xi))
+        if len(t) > 40:
+            ax.plot(t, x)
+            ax2.plot(t, v)
+            fig.savefig('test.png')
+
+g = grapher()
+g.send(None)
+
 
 class SocketOutput(asyncio.Protocol):
     print("Listening at {}".format(address))
@@ -67,6 +106,9 @@ class SerialOutput(asyncio.Protocol):
             s = self.current_read.split('\n')
             full_message = s.pop(0)
             self.current_read = "\n".join(s)
+
+            #if 'pour_update' in full_message:
+            #    g.send(full_message)
 
             for socktransport in socket_transports:
                 print('writing to socket...')

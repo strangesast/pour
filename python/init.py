@@ -1,3 +1,4 @@
+import os
 import asyncio
 import re
 import asyncio.subprocess
@@ -5,7 +6,7 @@ from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
 import sys
 import serial.aio
 
-path = "/home/samuel/Packages/simavr/examples/board_simduino"
+path = os.path.join(os.environ['HOME'], "Packages/simavr/examples/board_simduino")
 
 unbuf = ['stdbuf', '-oL', '-eL']
 sim_command = unbuf + ['./obj-x86_64-linux-gnu/simduino.elf']
@@ -85,7 +86,7 @@ def make_and_upload_sim_code(sim_loc):
     make_path = '../arduino/testing'
     make_create = create_process_with_command(make_command, make_path)
     proc = yield from make_create
-    all_data = yield from get_line_until_timeout(proc, 2.0, True)
+    all_data = yield from get_line_until_timeout(proc)#, 2.0, True)
     exit_code = yield from proc.wait()
 
     print('uploading firmware...')
@@ -96,7 +97,7 @@ def make_and_upload_sim_code(sim_loc):
     upload_path = '../arduino/testing'
     create = create_process_with_command(upload_command, upload_path)
     proc = yield from create
-    all_data = yield from get_line_until_timeout(proc, 2.0, True)
+    all_data = yield from get_line_until_timeout(proc)#, 2.0, True)
 
     exit_code = yield from proc.wait()
 
@@ -121,7 +122,7 @@ def parse_full_line(port_from, line):
     if 'update-temps' in line:
         match = re.findall('update-temps:\s([\d\.,\s]+)', line.strip())
         if len(match):
-            temps = map(float, match[0].split(', '))
+            temps = list(map(float, match[0].split(', ')))
             print('temps!')
             print(temps)
 
@@ -137,7 +138,7 @@ class SerialProtocol(asyncio.Protocol):
             self.connection_established_future.set_result(True)
         self.transport = transport
         SerialProtocol.transports.append(transport)
-        print('port opened', transport)
+        print('serial port opened: {} ({})'.format(repr(self.name), self.port))
 
     def data_received(self, data):
         self.current_data += data
@@ -166,6 +167,45 @@ def get_temps(delay):
             transport.write(b'temps\n')
 
     return
+
+class SocketProtocol(asyncio.Protocol):
+    def __init__(self):
+        print('init!')
+
+    def connection_made(self, transport):
+        self.transport = transport
+        peername = transport.get_extra_info('peername')
+        print('New connection from {}'.format(peername))
+        SocketProtocol.transports.append(transport)
+
+    def data_received(self, data):
+        message = data.decode()
+        print('message received: {}'.format(repr(message)))
+
+        #if message[:5] == 'close':
+        #    self.transport.write(b'closing...\n')
+        #    self.transport.close()
+        #    return
+
+        #elif message[:4] == 'quit':
+        #    self.transport.write(b'stopping...\n')
+        #    loop.stop()
+        #    return
+
+        #for sertransport in serial_transports:
+        #    print('writing to serial...')
+        #    sertransport.write(message.encode())
+
+        #self.transport.write(b'wrote: ' + data)
+
+    def connection_lost(self, exc):
+        peername = self.transport.get_extra_info('peername')
+        print('Connection from {} closed'.format(peername))
+        SocketProtocol.transports.remove(self.transport)
+        self.transport.close()
+
+    transports = []
+
 
 @asyncio.coroutine
 def main():
@@ -196,8 +236,17 @@ def main():
 loop = asyncio.get_event_loop()
 
 try:
-    date = loop.run_until_complete(main())
-    print(date)
+    host = '127.0.0.1'
+    port=25000
+    server = loop.create_server(
+            SocketProtocol,
+            host=host,
+            port=port)
+
+    loop.run_until_complete(server)
+    print("Listening at '{}:{}'".format(host, port))
+
+    loop.run_forever()
 
 except KeyboardInterrupt:
     print('quit')

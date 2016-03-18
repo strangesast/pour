@@ -1,5 +1,6 @@
 import os
 import asyncio
+import json
 import re
 import asyncio.subprocess
 from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
@@ -119,12 +120,24 @@ def start_serial_connection(name, pts, connection_made_future):
 
 
 def parse_full_line(port_from, line):
+    result = {'from' : port_from}
     if 'update-temps' in line:
         match = re.findall('update-temps:\s([\d\.,\s]+)', line.strip())
         if len(match):
             temps = list(map(float, match[0].split(', ')))
-            print('temps!')
-            print(temps)
+            result.update({'type': 'temp-update', 'value' : temps })
+        else:
+            raise ValueError('improperly formated temp line')
+
+    elif 'welcome' in line:
+        # serial initialized
+        result.update({'type' : 'serial-init'})
+
+    else:
+        result.update({'type': 'unknown', 'value' : line })
+
+    return result
+
 
 class SerialProtocol(asyncio.Protocol):
     def __init__(self, name, port, connection_established_future):
@@ -137,7 +150,7 @@ class SerialProtocol(asyncio.Protocol):
         if self.connection_established_future:
             self.connection_established_future.set_result(True)
         self.transport = transport
-        SerialProtocol.transports.append(transport)
+        SerialProtocol.items.append(self)
         print('serial port opened: {} ({})'.format(repr(self.name), self.port))
 
     def data_received(self, data):
@@ -146,24 +159,31 @@ class SerialProtocol(asyncio.Protocol):
         spl = parsed.split('\n')
         while len(spl) > 1:
             line = spl.pop(0)
-            parse_full_line(self.port, line)
-            text = 'line from {} ({}): {}'.format(repr(self.name), self.port, repr(line))
-            print(text)
+            result = parse_full_line(self.port, line)
+            #text = 'line from {} ({}): {}'.format(repr(self.name), self.port, repr(line))
+
+            for protocol in SocketProtocol.items:
+                transport = protocol.transport
+                t = result.get('type')
+                if not (t is None or t == 'unknown'):
+                    transport.write(json.dumps(result).encode())
+                    transport.write(b'\n')
 
         self.current_data = spl[0].encode()
 
     def connection_lost(self, exc):
         print('port closed')
-        SerialProtocol.transports.remove(transport)
+        SerialProtocol.items.remove(self)
 
-    transports = []
+    items = []
 
 def get_temps(delay):
     while True:
         print('sleeping for {}s'.format(delay))
         yield from asyncio.sleep(delay)
         print('writing...')
-        for transport in SerialProtocol.transports:
+        for protocol in SerialProtocol.items:
+            transport = protocol.transport
             transport.write(b'temps\n')
 
     return
@@ -176,7 +196,7 @@ class SocketProtocol(asyncio.Protocol):
         self.transport = transport
         peername = transport.get_extra_info('peername')
         print('New connection from {}'.format(peername))
-        SocketProtocol.transports.append(transport)
+        SocketProtocol.items.append(self)
 
     def data_received(self, data):
         message = data.decode()
@@ -201,10 +221,10 @@ class SocketProtocol(asyncio.Protocol):
     def connection_lost(self, exc):
         peername = self.transport.get_extra_info('peername')
         print('Connection from {} closed'.format(peername))
-        SocketProtocol.transports.remove(self.transport)
+        SocketProtocol.items.remove(self)
         self.transport.close()
 
-    transports = []
+    items = []
 
 
 @asyncio.coroutine
@@ -245,6 +265,8 @@ try:
 
     loop.run_until_complete(server)
     print("Listening at '{}:{}'".format(host, port))
+
+    loop.run_until_complete(main())
 
     loop.run_forever()
 

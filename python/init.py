@@ -170,15 +170,6 @@ class SerialProtocol(asyncio.Protocol):
         while len(spl) > 1:
             line = spl.pop(0)
             self.keg.message_received(line)
-            #result = parse_full_line(self.port, line)
-            #text = 'line from {} ({}): {}'.format(repr(self.keg.name), self.port, repr(line))
-
-            #for protocol in SocketProtocol.items:
-            #    transport = protocol.transport
-            #    t = result.get('type')
-            #    if not (t is None or t == 'unknown'):
-            #        transport.write(json.dumps(result).encode())
-            #        transport.write(b'\n')
 
         self.current_data = spl[0].encode()
 
@@ -194,9 +185,12 @@ def get_temps(delay):
         print('sleeping for {}s'.format(delay))
         yield from asyncio.sleep(delay)
         print('writing...')
-        for protocol in SerialProtocol.items:
-            transport = protocol.transport
-            transport.write(b'temps\n')
+        for keg in Keg.items:
+            if not keg.pouring:
+                keg.serial_transport.write(b'temps\n')
+                #for protocol in keg.registered_to:
+                #    transport = protocol.transport
+                #    transport.write(b'temps\n')
 
     return
 
@@ -238,7 +232,32 @@ class SocketProtocol(asyncio.Protocol):
 
             return self.transport.write(text.encode())
 
-        self.transport.write(b'unrecognized or malformed command\n')
+        m3 = re.findall('keg "([\w\s]+)" pour (\d+)', message)
+        if m3:
+            kegname, amount = m3[0]
+            keg = Keg.get_keg_by_name(kegname)
+            if keg is None:
+                text = 'keg with name {} not found\n'.format(repr(kegname))
+            else:
+                keg.pouring = True
+                keg.serial_transport.write('pour\n'.format(amount).encode())
+                text = "pouring {} to {}...\n".format(amount, repr(kegname))
+
+            return self.transport.write(text.encode())
+
+        m4 = re.findall('keg "([\w\s]+)" pour cancel', message)
+        if m4:
+            kegname = m4[0]
+            keg = Keg.get_keg_by_name(kegname)
+            if keg is None:
+                text = 'keg with name {} not found\n'.format(repr(kegname))
+            elif keg.pouring:
+                text = 'cancelling...\n'
+                keg.serial_transport.write(b'cancel\n')
+            else:
+                text = 'keg is not pouring...\n'
+
+            return self.transport.write(text.encode())
         
 
     def connection_lost(self, exc):
@@ -258,6 +277,7 @@ class Keg:
         self.virtual = virtual
         self.connection_ready = asyncio.Future()
         self.registered_to = set()
+        self.pouring = False
         Keg.items.append(self)
 
     @asyncio.coroutine
@@ -290,15 +310,19 @@ class Keg:
             # should happen only once
             print('ready...')
             self.connection_ready.set_result(True)
-        else:
-            print('message for {}: {}'.format(repr(self.name), repr(message)))
-            for protocol in self.registered_to:
-                try:
-                    protocol.transport.write("message from {}: {}\n".format(repr(self.name), message).encode())
-                # too vague
-                except:
-                    print('removing transport...')
-                    self.registered_to.remove(protocol)
+
+        elif 'pour_update' in message:
+            if 'finished' in message:
+                self.pouring = False
+
+        print('message for {}: {}'.format(repr(self.name), repr(message)))
+        for protocol in self.registered_to:
+            try:
+                protocol.transport.write("message from {}: {}\n".format(repr(self.name), message).encode())
+            # too vague
+            except:
+                print('removing transport...')
+                self.registered_to.remove(protocol)
 
 
     @classmethod
@@ -329,11 +353,7 @@ def main():
         else:
             pass
 
-    while True:
-        yield from asyncio.sleep(10.0)
-        for keg in Keg.items:
-            yield from asyncio.sleep(1.0)
-            keg.send_message('temps\n')
+    temps_coro = asyncio.ensure_future(get_temps(10))
 
     ## future for pts retrieval
     #fut = asyncio.Future()

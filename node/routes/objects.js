@@ -26,6 +26,11 @@ router.post('/kegerators', upload.array(), function(req, res, next) {
   });
 });
 
+router.get('/kegerators/:kegeratorId', function(req, res, next) {
+  kegid = req.params.kegeratorId
+  return res.send(kegid)
+});
+
 router.get('/accounts/:accountId', function(req, res, next) {
   Account.findById(req.params.accountId).then(function(account) {
     return res.json({

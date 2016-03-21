@@ -1,0 +1,12 @@
+{
+  "kegs": {
+    "test": {
+      "name": "test keg",
+      "virtual": true
+    },
+    "0": {
+      "name": "another keg",
+      "virtual": false
+    }
+  }
+}

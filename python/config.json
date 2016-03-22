@@ -6,7 +6,11 @@
     },
     "0": {
       "name": "another keg",
-      "virtual": false
+      "virtual": true
     }
+  },
+  "simulator_settings": {
+    "path": "~/Packages/simavr/examples/board_simduino",
+    "command": ["stdbuf", "-oL", "-eL", "./obj-x86_64-linux-gnu/simduino.elf"]
   }
 }

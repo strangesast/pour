@@ -1,19 +1,15 @@
-import os
+from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
+import asyncio.subprocess
+import serial.aio
 import asyncio
 import json
-import re
-import asyncio.subprocess
-from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
 import sys
-import serial.aio
+import re
+import os
 
-path = os.path.join(os.environ['HOME'], "Packages/simavr/examples/board_simduino")
 
-unbuf = ['stdbuf', '-oL', '-eL']
-sim_command = unbuf + ['./obj-x86_64-linux-gnu/simduino.elf']
-
-pat = re.compile('\/dev\/pts\/\d+')
-pat = re.compile('((?P<sim>\/tmp\/.+?)\s)|(?P<pts>\/dev\/pts\/\d+)')
+with open('config.json') as f:
+    config = json.load(f)
 
 def find_match_in_iter(itr, reg):
     result = {}
@@ -51,39 +47,6 @@ def get_line_until_timeout(process, timeout=1.0, prnt=False):
 
 
 @asyncio.coroutine
-def setup_sim(tty_future):
-    print('creating sim process...', end=' ')
-    create = create_process_with_command(sim_command, cwd=path)
-
-    proc = yield from create
-
-    all_data = yield from get_line_until_timeout(proc, 1.5, False)
-
-    pts = find_match_in_iter(all_data, pat)
-
-    if pts:
-        print('got {} '.format(pts['pts']))
-        tty_future.set_result(pts)
-    else:
-        print('FAILED')
-        tty_future.set_exception(Exception('no pts returned'))
-
-    try:
-        yield from proc.wait()
-    except asyncio.CancelledError:
-        print('simulator canceled')
-        pass
-
-    return
-
-
-@asyncio.coroutine
-def upload_firmware():
-    exit_code = yield from proc.wait()
-    print('DONE')
-
-
-@asyncio.coroutine
 def make_and_upload_sim_code(sim_loc):
     print('building firmware...', end='')
 
@@ -98,6 +61,7 @@ def make_and_upload_sim_code(sim_loc):
 
     print('uploading firmware...', end='')
 
+    unbuf = ['stdbuf', '-oL', '-eL']
     upload_command = unbuf + ['avrdude', '-p', 'm328p', '-c', 'arduino',
             '-P', sim_loc, '-U', 'flash:w:build-uno/testing.hex']
 
@@ -112,41 +76,6 @@ def make_and_upload_sim_code(sim_loc):
 
     print('DONE')
     return exit_code
-
-
-def start_serial_connection(keg, pts):
-    print('starting serial connection with {}...'.format(repr(pts)))
-    connection_made_future = asyncio.Future()
-    serial_transport = yield from serial.aio.create_serial_connection(
-            asyncio.get_event_loop(),
-            lambda: SerialProtocol(keg, pts, connection_made_future),
-            port=pts,
-            baudrate=9600)
-
-    print('waiting for connection...')
-    yield from connection_made_future
-
-    return serial_transport
-
-
-def parse_full_line(port_from, line):
-    result = {'from' : port_from}
-    if 'update-temps' in line:
-        match = re.findall('update-temps:\s([\d\.,\s]+)', line.strip())
-        if len(match):
-            temps = list(map(float, match[0].split(', ')))
-            result.update({'type': 'temp-update', 'value' : temps })
-        else:
-            raise ValueError('improperly formated temp line')
-
-    elif 'welcome' in line:
-        # serial initialized
-        result.update({'type' : 'serial-init'})
-
-    else:
-        result.update({'type': 'unknown', 'value' : line })
-
-    return result
 
 
 class SerialProtocol(asyncio.Protocol):
@@ -178,21 +107,6 @@ class SerialProtocol(asyncio.Protocol):
         SerialProtocol.items.remove(self)
 
     items = []
-
-@asyncio.coroutine
-def get_temps(delay):
-    while True:
-        print('sleeping for {}s'.format(delay))
-        yield from asyncio.sleep(delay)
-        print('writing...')
-        for keg in Keg.items:
-            if not keg.pouring:
-                keg.serial_transport.write(b'temps\n')
-                #for protocol in keg.registered_to:
-                #    transport = protocol.transport
-                #    transport.write(b'temps\n')
-
-    return
 
 
 class SocketProtocol(asyncio.Protocol):
@@ -268,16 +182,26 @@ class SocketProtocol(asyncio.Protocol):
 
     items = []
 
+class KegTask:
+    def __init__(self, completed_future, waiting_on):
+        self.completed_future = completed_future
+        self.waiting_on = waiting_on
+
+    def update(self, message):
+        result = self.waiting_on(message)
+        if result:
+            self.completed_future.set_result(result)
+
 
 class Keg:
     def __init__(self, name, virtual=True, host=None, port=None):
         self.name = name
         self.host = host
-        self.port = port
+        self.pts = port
         self.virtual = virtual
-        self.connection_ready = asyncio.Future()
+        self.current_task = None
         self.registered_to = set()
-        self.pouring = False
+        self.pouring = None
         Keg.items.append(self)
 
     @asyncio.coroutine
@@ -286,44 +210,105 @@ class Keg:
         print('establishing connection for {}'.format(repr(self.name)))
 
         if self.virtual:
-            sim_setup_complete = asyncio.Future()
-            sim_task = asyncio.ensure_future(setup_sim(sim_setup_complete))
+            connected_fut = asyncio.Future()
 
-            port_defs = yield from sim_setup_complete
+            command = config['simulator_settings']['command']
+            path = config['simulator_settings']['path']
 
-            sim, pts = [port_defs.get(x) for x in ['sim', 'pts']]
+            self.simulator_process_task = asyncio.ensure_future(Keg.create_simulator(
+                connected_fut,
+                command,
+                path.replace('~', os.environ['HOME'])))
+
+            pts = yield from connected_fut
             self.pts = pts
-            yield from make_and_upload_sim_code(sim)
 
-            transport, protocol = yield from start_serial_connection(self, pts)
+        assert self.pts, "No pts has been defined..."
 
-            self.serial_transport = transport
+        connection_made_future = asyncio.Future()
 
-        print('connected!')
+        transport, protocol = yield from serial.aio.create_serial_connection(
+                asyncio.get_event_loop(),
+                lambda: SerialProtocol(self, pts, connection_made_future),
+                port=pts,
+                baudrate=9600)
+    
+        self.serial_transport = transport
+
+        print('waiting for connection...')
+        yield from connection_made_future
+
+        print('connection to "{}" made at "{}"!'.format(self.name, transport.serial.port))
 
     def send_message(self, message):
         message = message.rstrip('\n') + '\n'
         self.serial_transport.write(message.encode())
 
     def message_received(self, message):
-        if 'welcome' in message:
-            # should happen only once
-            print('ready...')
-            self.connection_ready.set_result(True)
+        if self.current_task is not None:
+            self.current_task.update(message)
+        else:
+            # this should not happen
+            print('unsolicited message: {}'.format(repr(message)))
 
-        elif 'pour_update' in message:
-            if 'finished' in message:
-                self.pouring = False
+    def welcome(self):
+        print("waiting for welcome...")
+        finished_future = asyncio.Future()
+        waiting_on = re.compile('welcome!').findall
+        task = KegTask(finished_future, waiting_on)
+        self.current_task = task
+        yield from asyncio.wait_for(finished_future, 10)
+        self.current_task = None
 
-        print('message for {}: {}'.format(repr(self.name), repr(message)))
-        for protocol in self.registered_to:
-            try:
-                protocol.transport.write("message from {}: {}\n".format(repr(self.name), message).encode())
-            # too vague
-            except:
-                print('removing transport...')
-                self.registered_to.remove(protocol)
+    def pour(self, amount):
+        print("waiting for pour to complete...")
+        finished_future = asyncio.Future()
+        waiting_on = re.compile('welcome!').findall
+        task = KegTask(finished_future, waiting_on)
+        self.current_task = task
+        yield from asyncio.wait_for(finished_future, 10)
+        self.current_task = None
 
+    def create_task(self, task):
+        # create task
+        # try to let it complete
+
+        # reroute updates / completion
+
+        # catch timeout / other failure
+        # return
+        pass
+
+
+    @staticmethod
+    def create_simulator(simulator_ready_future, command, path="./"):
+        print('creating sim process...', end=' ')
+
+        create = create_subprocess_exec(*command, cwd=path, stdout=PIPE, stderr=STDOUT)
+        proc = yield from create
+        all_data = yield from get_line_until_timeout(proc, 1.5, False)
+
+        mat = re.findall('((?P<sim>\/tmp\/[-\w\d]+?)\s)|(?P<pts>\/dev\/pts\/\d+)', "".join(all_data))
+        _, sim, pts = [next(x for x in y if x) for y in zip(*mat)]
+
+        yield from make_and_upload_sim_code(sim)
+
+        if pts:
+            simulator_ready_future.set_result(pts)
+            yield from proc.wait()
+
+        else:
+            return simulator_ready_future.set_exception(Exception('no pts returned'))
+
+    @asyncio.coroutine
+    def _get_temps(self, delay):
+        pass
+
+
+    @asyncio.coroutine
+    def get_temps(self, delay):
+        self.serial_transport.write(b'temps\n')
+        return asyncio.ensure_future(self._get_temps(delay))
 
     @classmethod
     def get_keg_by_name(cls, name):
@@ -338,45 +323,24 @@ class Keg:
 
 @asyncio.coroutine
 def main():
-    with open('config.json') as f:
-        config = json.load(f)
-
+    temps_tasks = []
     for kegid, val in config['kegs'].items():
         if val.get('virtual') or kegid == 'test':
             keg = Keg(val['name'], True)
-            yield from keg.init_connection()
-
-            yield from keg.connection_ready
-
-            keg.send_message('temps')
-
         else:
-            pass
+            keg = Keg(val['name'], False)
 
-    temps_coro = asyncio.ensure_future(get_temps(10))
+        yield from keg.init_connection()
 
-    ## future for pts retrieval
-    #fut = asyncio.Future()
+        print('now waiting on ready from device...')
 
-    ## run this in the background until process terminates,
-    ## then possibly restart it
-    #simulator_proc = asyncio.ensure_future(setup_sim(fut))
+        yield from keg.welcome()
+        #yield from keg.connection_ready
 
-    #locs = yield from fut
-    #pts = locs['pts']
-    #sim = locs['sim']
+        #temps_task = keg.get_temps(10)
+        #temps_tasks.append(temps_task)
 
-    #yield from make_and_upload_sim_code(sim)
-
-    #con_fut = asyncio.Future()
-
-    #name = 'testing port'
-    #yield from asyncio.ensure_future(start_serial_connection(name, pts, con_fut))
-
-    ## repeatedly get temps every 10s
-    #temps_coro = get_temps(10)
-    #all_temps_task = yield from asyncio.ensure_future(temps_coro)
-    #yield from simulator_proc
+    #yield from asyncio.wait(temps_tasks)
 
 
 loop = asyncio.get_event_loop()

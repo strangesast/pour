@@ -7,7 +7,9 @@ from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
 import sys
 import serial.aio
 
-path = os.path.join(os.environ['HOME'], "Packages/simavr/examples/board_simduino")
+
+with open('config.json') as f:
+    config = json.load(f)
 
 unbuf = ['stdbuf', '-oL', '-eL']
 sim_command = unbuf + ['./obj-x86_64-linux-gnu/simduino.elf']
@@ -112,21 +114,6 @@ def make_and_upload_sim_code(sim_loc):
 
     print('DONE')
     return exit_code
-
-
-def start_serial_connection(keg, pts):
-    print('starting serial connection with {}...'.format(repr(pts)))
-    connection_made_future = asyncio.Future()
-    serial_transport = yield from serial.aio.create_serial_connection(
-            asyncio.get_event_loop(),
-            lambda: SerialProtocol(keg, pts, connection_made_future),
-            port=pts,
-            baudrate=9600)
-
-    print('waiting for connection...')
-    yield from connection_made_future
-
-    return serial_transport
 
 
 def parse_full_line(port_from, line):
@@ -273,7 +260,7 @@ class Keg:
     def __init__(self, name, virtual=True, host=None, port=None):
         self.name = name
         self.host = host
-        self.port = port
+        self.pts = port
         self.virtual = virtual
         self.connection_ready = asyncio.Future()
         self.registered_to = set()
@@ -286,20 +273,35 @@ class Keg:
         print('establishing connection for {}'.format(repr(self.name)))
 
         if self.virtual:
-            sim_setup_complete = asyncio.Future()
-            sim_task = asyncio.ensure_future(setup_sim(sim_setup_complete))
+            connected_fut = asyncio.Future()
 
-            port_defs = yield from sim_setup_complete
+            command = config['simulator_settings']['command']
+            path = config['simulator_settings']['path']
 
-            sim, pts = [port_defs.get(x) for x in ['sim', 'pts']]
+            self.simulator_process_task = asyncio.ensure_future(Keg.create_simulator(
+                connected_fut,
+                command,
+                path.replace('~', os.environ['HOME'])))
+
+            pts = yield from connected_fut
             self.pts = pts
-            yield from make_and_upload_sim_code(sim)
 
-            transport, protocol = yield from start_serial_connection(self, pts)
+        assert self.pts, "No pts has been defined..."
 
-            self.serial_transport = transport
+        connection_made_future = asyncio.Future()
 
-        print('connected!')
+        transport, protocol = yield from serial.aio.create_serial_connection(
+                asyncio.get_event_loop(),
+                lambda: SerialProtocol(self, pts, connection_made_future),
+                port=pts,
+                baudrate=9600)
+    
+        self.serial_transport = transport
+
+        print('waiting for connection...')
+        yield from connection_made_future
+
+        print('connection to "{}" made at "{}"!'.format(self.name, transport.serial.port))
 
     def send_message(self, message):
         message = message.rstrip('\n') + '\n'
@@ -324,6 +326,26 @@ class Keg:
                 print('removing transport...')
                 self.registered_to.remove(protocol)
 
+    @staticmethod
+    def create_simulator(simulator_ready_future, command, path="./"):
+        print('creating sim process...', end=' ')
+
+        create = create_subprocess_exec(*command, cwd=path, stdout=PIPE, stderr=STDOUT)
+        proc = yield from create
+        all_data = yield from get_line_until_timeout(proc, 1.5, False)
+
+        mat = re.findall('((?P<sim>\/tmp\/[-\w\d]+?)\s)|(?P<pts>\/dev\/pts\/\d+)', "".join(all_data))
+        _, sim, pts = [next(x for x in y if x) for y in zip(*mat)]
+
+        yield from make_and_upload_sim_code(sim)
+
+        if pts:
+            simulator_ready_future.set_result(pts)
+            yield from proc.wait()
+
+        else:
+            return simulator_ready_future.set_exception(Exception('no pts returned'))
+
 
     @classmethod
     def get_keg_by_name(cls, name):
@@ -338,20 +360,19 @@ class Keg:
 
 @asyncio.coroutine
 def main():
-    with open('config.json') as f:
-        config = json.load(f)
-
     for kegid, val in config['kegs'].items():
         if val.get('virtual') or kegid == 'test':
             keg = Keg(val['name'], True)
-            yield from keg.init_connection()
-
-            yield from keg.connection_ready
-
-            keg.send_message('temps')
-
         else:
-            pass
+            keg = Keg(val['name'], False)
+
+        yield from keg.init_connection()
+
+        print('now waiting on ready from device...')
+
+        yield from keg.connection_ready
+
+        keg.send_message('temps')
 
     temps_coro = asyncio.ensure_future(get_temps(10))
 

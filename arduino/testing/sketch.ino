@@ -39,9 +39,9 @@ void loop() {
     incomingString = Serial.readStringUntil('\n');
     Serial.println(incomingString.substring(0, 4));
     if(incomingString== "temps") {
-      Serial.print("fetching temps...\n");
+      Serial.println("update_temps: init");
       String tempString = getThreeTemps();
-      Serial.print("update-temps: ");
+      Serial.print("update_temps: ");
       Serial.println(tempString);
     } else if (incomingString== "pour") {
       float count = 0;
@@ -66,7 +66,7 @@ void loop() {
       }
       Serial.println("pour_update: finished");
     } else {
-      Serial.print("sent: ");
+      Serial.print("unrecognized, sent: ");
       Serial.println(incomingString);
     }
   }

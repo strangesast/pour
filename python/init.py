@@ -111,6 +111,7 @@ class SerialProtocol(asyncio.Protocol):
 
 class SocketProtocol(asyncio.Protocol):
     def __init__(self):
+        self.registered_to = set()
         print('init!')
 
     def connection_made(self, transport):
@@ -129,7 +130,7 @@ class SocketProtocol(asyncio.Protocol):
                 text = 'keg with pts {} not found\n'.format(repr(m1[0]))
 
             else:
-                keg.registered_to.add(self)
+                self.registered_to.add(keg.name)
                 text = 'registered to {}\n'.format(repr(keg.name))
 
             return self.transport.write(text.encode())
@@ -141,7 +142,7 @@ class SocketProtocol(asyncio.Protocol):
                 text = 'keg with name {} not found\n'.format(repr(m2[0]))
 
             else:
-                keg.registered_to.add(self)
+                self.registered_to.add(self)
                 text = 'registered to {}\n'.format(repr(keg.name))
 
             return self.transport.write(text.encode())
@@ -153,9 +154,8 @@ class SocketProtocol(asyncio.Protocol):
             if keg is None:
                 text = 'keg with name {} not found\n'.format(repr(kegname))
             else:
-                keg.pouring = True
-                keg.serial_transport.write('pour\n'.format(amount).encode())
                 text = "pouring {} to {}...\n".format(amount, repr(kegname))
+                keg.create_task(keg.pour, 100, int(amount))
 
             return self.transport.write(text.encode())
 
@@ -165,7 +165,8 @@ class SocketProtocol(asyncio.Protocol):
             keg = Keg.get_keg_by_name(kegname)
             if keg is None:
                 text = 'keg with name {} not found\n'.format(repr(kegname))
-            elif keg.pouring:
+
+            elif keg.current_task is not None:
                 text = 'cancelling...\n'
                 keg.serial_transport.write(b'cancel\n')
             else:
@@ -181,6 +182,7 @@ class SocketProtocol(asyncio.Protocol):
         self.transport.close()
 
     items = []
+
 
 class KegTask:
     def __init__(self, completed_future, waiting_on):
@@ -200,7 +202,6 @@ class Keg:
         self.pts = port
         self.virtual = virtual
         self.current_task = None
-        self.registered_to = set()
         self.pouring = None
         Keg.items.append(self)
 
@@ -246,38 +247,44 @@ class Keg:
 
     def message_received(self, message):
         if self.current_task is not None:
+            print('message from {}: {}'.format(repr(self.name), repr(message)))
             self.current_task.update(message)
         else:
             # this should not happen
             print('unsolicited message: {}'.format(repr(message)))
 
-    def welcome(self):
+    def welcome(self, fut):
         print("waiting for welcome...")
-        finished_future = asyncio.Future()
         waiting_on = re.compile('welcome!').findall
-        task = KegTask(finished_future, waiting_on)
-        self.current_task = task
-        yield from asyncio.wait_for(finished_future, 10)
-        self.current_task = None
+        task = KegTask(fut, waiting_on)
+        return task
 
-    def pour(self, amount):
+    def pour(self, fut, amount):
         print("waiting for pour to complete...")
-        finished_future = asyncio.Future()
-        waiting_on = re.compile('welcome!').findall
-        task = KegTask(finished_future, waiting_on)
-        self.current_task = task
-        yield from asyncio.wait_for(finished_future, 10)
-        self.current_task = None
 
-    def create_task(self, task):
-        # create task
-        # try to let it complete
+        # send amount
+        self.send_message('pour'.format(amount))
 
-        # reroute updates / completion
+        waiting_on = re.compile('finished').findall
+        task = KegTask(fut, waiting_on)
+        return task
 
-        # catch timeout / other failure
-        # return
-        pass
+    # start 'task' - which is a function with Future as first arg - and add to current_task
+    def create_task(self, task, timeout, *args):
+        fut = asyncio.Future()
+        try:
+            if self.current_task is not None:
+                raise Exception('a different task is already initiated')
+
+            self.current_task = task(fut, *args)
+            val = yield from asyncio.wait_for(fut, timeout)
+
+        except Exception as e:
+            val = e
+
+        finally:
+            self.current_task = None
+            return val
 
 
     @staticmethod
@@ -334,7 +341,8 @@ def main():
 
         print('now waiting on ready from device...')
 
-        yield from keg.welcome()
+        welcome_message = yield from keg.create_task(keg.welcome, 10)
+
         #yield from keg.connection_ready
 
         #temps_task = keg.get_temps(10)

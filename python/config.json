@@ -6,7 +6,8 @@
     },
     "0": {
       "name": "another keg",
-      "virtual": true
+      "virtual": true,
+      "port" : "/dev/pts/12"
     }
   },
   "simulator_settings": {

@@ -7,75 +7,10 @@ import sys
 import re
 import os
 
+import virtual
 
 with open('config.json') as f:
     config = json.load(f)
-
-def find_match_in_iter(itr, reg):
-    result = {}
-    for each in itr:
-        m = [m.groupdict() for m in reg.finditer(each)]
-        for match in m:
-            for key, val in match.items():
-                if val is not None:
-                    result[key] = val
-
-    return result
-
-def create_process_with_command(command, cwd=None):
-    return create_subprocess_exec(*command, cwd=cwd,
-            stdout=PIPE, stderr=STDOUT)
-
-
-@asyncio.coroutine
-def get_line_until_timeout(process, timeout=1.0, prnt=False):
-    lines = []
-    while True:
-        linegen = process.stdout.readline()
-        task = asyncio.wait_for(linegen, timeout)
-        try:
-            line = (yield from task).decode()
-            if not line: break
-            if prnt: print("{}{}{}".format(
-                '\033[92m',
-                line.strip(),
-                '\033[0m'))
-            lines.append(line)
-        except asyncio.TimeoutError:
-            break
-    return lines
-
-
-@asyncio.coroutine
-def make_and_upload_sim_code(sim_loc):
-    print('building firmware...', end='')
-
-    make_command = ['make']
-    make_path = '../arduino/testing'
-    make_create = create_process_with_command(make_command, make_path)
-    proc = yield from make_create
-    all_data = yield from get_line_until_timeout(proc, 1.5, False)
-    exit_code = yield from proc.wait()
-
-    print('DONE')
-
-    print('uploading firmware...', end='')
-
-    unbuf = ['stdbuf', '-oL', '-eL']
-    upload_command = unbuf + ['avrdude', '-p', 'm328p', '-c', 'arduino',
-            '-P', sim_loc, '-U', 'flash:w:build-uno/testing.hex']
-
-    upload_path = '../arduino/testing'
-    create = create_process_with_command(upload_command, upload_path)
-    proc = yield from create
-    all_data = yield from get_line_until_timeout(proc, 1.5, False)
-
-    exit_code = yield from proc.wait()
-
-    assert exit_code == 0
-
-    print('DONE')
-    return exit_code
 
 
 class SerialProtocol(asyncio.Protocol):
@@ -196,11 +131,11 @@ class KegTask:
 
 
 class Keg:
-    def __init__(self, name, virtual=True, host=None, port=None):
+    def __init__(self, name, vir=True, host=None, port=None):
         self.name = name
         self.host = host
         self.pts = port
-        self.virtual = virtual
+        self.virtual = vir
         self.current_task = None
         self.pouring = None
         Keg.items.append(self)
@@ -216,7 +151,7 @@ class Keg:
             command = config['simulator_settings']['command']
             path = config['simulator_settings']['path']
 
-            self.simulator_process_task = asyncio.ensure_future(Keg.create_simulator(
+            self.simulator_process_task = asyncio.ensure_future(virtual.create_simulator(
                 connected_fut,
                 command,
                 path.replace('~', os.environ['HOME'])))
@@ -286,31 +221,9 @@ class Keg:
             self.current_task = None
             return val
 
-
-    @staticmethod
-    def create_simulator(simulator_ready_future, command, path="./"):
-        print('creating sim process...', end=' ')
-
-        create = create_subprocess_exec(*command, cwd=path, stdout=PIPE, stderr=STDOUT)
-        proc = yield from create
-        all_data = yield from get_line_until_timeout(proc, 1.5, False)
-
-        mat = re.findall('((?P<sim>\/tmp\/[-\w\d]+?)\s)|(?P<pts>\/dev\/pts\/\d+)', "".join(all_data))
-        _, sim, pts = [next(x for x in y if x) for y in zip(*mat)]
-
-        yield from make_and_upload_sim_code(sim)
-
-        if pts:
-            simulator_ready_future.set_result(pts)
-            yield from proc.wait()
-
-        else:
-            return simulator_ready_future.set_exception(Exception('no pts returned'))
-
     @asyncio.coroutine
     def _get_temps(self, delay):
         pass
-
 
     @asyncio.coroutine
     def get_temps(self, delay):
@@ -326,49 +239,3 @@ class Keg:
         return next((keg for keg in cls.items if keg.pts == pts), None)
 
     items = []
-
-
-@asyncio.coroutine
-def main():
-    temps_tasks = []
-    for kegid, val in config['kegs'].items():
-        if val.get('virtual') or kegid == 'test':
-            keg = Keg(val['name'], True)
-        else:
-            keg = Keg(val['name'], False)
-
-        yield from keg.init_connection()
-
-        print('now waiting on ready from device...')
-
-        welcome_message = yield from keg.create_task(keg.welcome, 10)
-
-        #yield from keg.connection_ready
-
-        #temps_task = keg.get_temps(10)
-        #temps_tasks.append(temps_task)
-
-    #yield from asyncio.wait(temps_tasks)
-
-
-loop = asyncio.get_event_loop()
-
-try:
-    host = '127.0.0.1'
-    port=25000
-    server = loop.create_server(
-            SocketProtocol,
-            host=host,
-            port=port)
-
-    loop.run_until_complete(server)
-    print("Listening at '{}:{}'".format(host, port))
-
-    loop.run_until_complete(main())
-
-    loop.run_forever()
-
-except KeyboardInterrupt:
-    print('quit')
-
-loop.close()

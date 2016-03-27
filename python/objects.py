@@ -165,8 +165,8 @@ class Keg:
 
         transport, protocol = yield from serial.aio.create_serial_connection(
                 asyncio.get_event_loop(),
-                lambda: SerialProtocol(self, pts, connection_made_future),
-                port=pts,
+                lambda: SerialProtocol(self, self.pts, connection_made_future),
+                port=self.pts,
                 baudrate=9600)
     
         self.serial_transport = transport
@@ -188,6 +188,13 @@ class Keg:
             # this should not happen
             print('unsolicited message: {}'.format(repr(message)))
 
+    def temps(self, fut):
+        print('requesting temps...')
+        self.send_message('temps')
+        waiting_on = re.compile('update-temps:\s(-?\d+\.\d+),\s(-?\d+\.\d+),\s(-?\d+\.\d+)').findall
+        task = KegTask(fut, waiting_on)
+        return task
+
     def welcome(self, fut):
         print("waiting for welcome...")
         waiting_on = re.compile('welcome!').findall
@@ -198,7 +205,7 @@ class Keg:
         print("waiting for pour to complete...")
 
         # send amount
-        self.send_message('pour'.format(amount))
+        self.send_message('pour')
 
         waiting_on = re.compile('finished').findall
         task = KegTask(fut, waiting_on)

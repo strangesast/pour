@@ -1,6 +1,29 @@
 from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
+from serial.tools import list_ports
 import asyncio
 import re
+
+
+def retrieve_devices_by_serial():
+    print('retrieving connected serial devices...')
+    serial_re = re.compile('SER=([\d\w]+)')
+    
+    serials = {}
+    for port in list_ports.comports() + ['toast']:
+        try:
+            hwid = getattr(port, 'hwid')
+        except AttributeError:
+            hwid = None
+    
+        if hwid is not None:
+            m = serial_re.findall(hwid)
+    
+            if len(m):
+                serial_id = m[0]
+    
+                serials[serial_id] = port.device
+    
+    return serials
 
 
 def create_process_with_command(command, cwd=None):

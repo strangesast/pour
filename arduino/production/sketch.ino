@@ -56,7 +56,7 @@ void loop() {
     } else if (incomingString == "pour") {
       digitalWrite(RELAY_PIN, HIGH);  // open valve
       pourStartMillis = millis();
-      pourCurrentMillis = pourStartMillis;
+      pourCurrentMillis = pourStartMillis + 1;
       pourCanceled = false;
 
       while(pourCurrentMillis - pourStartMillis < pourMaxMillis) {

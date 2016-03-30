@@ -5,9 +5,10 @@
       "virtual": true
     },
     "0": {
-      "name": "another keg",
-      "virtual": true,
-      "port" : "/dev/pts/12"
+      "name": "closet keg",
+      "virtual": false,
+      "port" : "auto",
+      "serial_id" : "641313833313510132E0"
     }
   },
   "simulator_settings": {

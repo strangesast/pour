@@ -43,6 +43,60 @@ class SerialProtocol(asyncio.Protocol):
 
     items = []
 
+def handle_message(message):
+    m1 = re.findall('reg\s(\/dev\/[\w\/]+)', message)
+    if m1:
+        keg = Keg.get_keg_by_pts(m1[0])
+        if keg is None:
+            text = 'keg with pts {} not found\n'.format(repr(m1[0]))
+
+        else:
+            self.registered_to.add(keg.name)
+            text = 'registered to {}\n'.format(repr(keg.name))
+
+        return self.transport.write(text.encode())
+
+    m2 = re.findall('reg\s"([\w\s]+)"', message)
+    if m2:
+        keg = Keg.get_keg_by_name(m2[0])
+        if keg is None:
+            text = 'keg with name {} not found\n'.format(repr(m2[0]))
+
+        else:
+            self.registered_to.add(self)
+            text = 'registered to {}\n'.format(repr(keg.name))
+
+        return self.transport.write(text.encode())
+
+    m3 = re.findall('keg "([\w\s]+)" pour (\d+)', message)
+    if m3:
+        kegname, amount = m3[0]
+        keg = Keg.get_keg_by_name(kegname)
+        if keg is None:
+            text = 'keg with name {} not found\n'.format(repr(kegname))
+        else:
+            text = "pouring {} to {}...\n".format(amount, repr(kegname))
+            keg.create_task(keg.pour, 100, int(amount))
+
+        return self.transport.write(text.encode())
+
+    m4 = re.findall('keg "([\w\s]+)" pour cancel', message)
+    if m4:
+        kegname = m4[0]
+        keg = Keg.get_keg_by_name(kegname)
+        if keg is None:
+            text = 'keg with name {} not found\n'.format(repr(kegname))
+
+        elif keg.current_task is not None:
+            text = 'cancelling...\n'
+            keg.serial_transport.write(b'cancel\n')
+        else:
+            text = 'keg is not pouring...\n'
+
+        return self.transport.write(text.encode())
+
+    return "err: invalid command"
+
 
 class SocketProtocol(asyncio.Protocol):
     def __init__(self):
@@ -57,58 +111,7 @@ class SocketProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         message = data.decode()
-
-        m1 = re.findall('reg\s(\/dev\/[\w\/]+)', message)
-        if m1:
-            keg = Keg.get_keg_by_pts(m1[0])
-            if keg is None:
-                text = 'keg with pts {} not found\n'.format(repr(m1[0]))
-
-            else:
-                self.registered_to.add(keg.name)
-                text = 'registered to {}\n'.format(repr(keg.name))
-
-            return self.transport.write(text.encode())
-
-        m2 = re.findall('reg\s"([\w\s]+)"', message)
-        if m2:
-            keg = Keg.get_keg_by_name(m2[0])
-            if keg is None:
-                text = 'keg with name {} not found\n'.format(repr(m2[0]))
-
-            else:
-                self.registered_to.add(self)
-                text = 'registered to {}\n'.format(repr(keg.name))
-
-            return self.transport.write(text.encode())
-
-        m3 = re.findall('keg "([\w\s]+)" pour (\d+)', message)
-        if m3:
-            kegname, amount = m3[0]
-            keg = Keg.get_keg_by_name(kegname)
-            if keg is None:
-                text = 'keg with name {} not found\n'.format(repr(kegname))
-            else:
-                text = "pouring {} to {}...\n".format(amount, repr(kegname))
-                keg.create_task(keg.pour, 100, int(amount))
-
-            return self.transport.write(text.encode())
-
-        m4 = re.findall('keg "([\w\s]+)" pour cancel', message)
-        if m4:
-            kegname = m4[0]
-            keg = Keg.get_keg_by_name(kegname)
-            if keg is None:
-                text = 'keg with name {} not found\n'.format(repr(kegname))
-
-            elif keg.current_task is not None:
-                text = 'cancelling...\n'
-                keg.serial_transport.write(b'cancel\n')
-            else:
-                text = 'keg is not pouring...\n'
-
-            return self.transport.write(text.encode())
-        
+        return handle_message(message)
 
     def connection_lost(self, exc):
         peername = self.transport.get_extra_info('peername')

@@ -153,7 +153,6 @@ class Keg:
 
             command = config['simulator_settings']['command']
             path = config['simulator_settings']['path']
-
             self.simulator_process_task = asyncio.ensure_future(virtual.create_simulator(
                 connected_fut,
                 command,

@@ -78,7 +78,7 @@ def _make_and_upload_sim_code(sim_loc):
 
     exit_code = yield from proc.wait()
 
-    assert exit_code == 0
+    assert exit_code == 0, 'something failed: {}'.format(repr("\n".join(all_data)))
 
     print('DONE')
     return exit_code
@@ -98,6 +98,7 @@ def create_simulator(simulator_ready_future, command, path="./"):
         assert bool(mat), '\033[91m' + 'This should find something... probably not building simulator.  output: {}'.format(repr("\n".join(all_data))) + '\033[0m'
 
     _, sim, pts = [next(x for x in y if x) for y in zip(*mat)]
+
 
     yield from _make_and_upload_sim_code(sim)
 

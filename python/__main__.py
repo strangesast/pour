@@ -1,7 +1,7 @@
-import select
 import asyncio
 import json
 import sys
+import re
 
 from objects import Keg, SocketProtocol, handle_message
 import virtual
@@ -16,26 +16,27 @@ def stdin_reader():
 
 @asyncio.coroutine
 def main():
-    serial_devices = virtual.retrieve_devices_by_serial()
+    serial_devices, serial_ports = virtual.retrieve_devices_by_serial()
 
     for kegid, val in config['kegs'].items():
-        if val.get('virtual') or kegid == 'test':
-            keg = Keg(val['name'], True)
-
+        validport = re.match('\/dev\/\w+', val.get('port') or "")
         # is port specified, is that port auto, is a serial id provided
-        elif val.get('port') and val['port'] == 'auto' and val.get('serial_id') in serial_devices:
+        if val.get('port') and val['port'] == 'auto' and val.get('serial_id') in serial_devices:
             serial_id = val.get('serial_id')
             loc = serial_devices[serial_id]
             print('found device at {}'.format(repr(loc)))
             keg = Keg(val['name'], False, port=loc)
 
         # is port specified, is that port explicit
-        elif val.get('port'):
+        elif val.get('port') and val['port'] in serial_ports:
             keg = Keg(val['name'], False, port=val['port'])
 
         # probably virtual
         else:
-            keg = Keg(val['name'], False, port=val['port'])
+            if not val.get('virtual'):
+                print('\033[93m' + 'WARNING: assuming virtual port' + '\033[0m')
+
+            keg = Keg(val['name'], True)
 
         yield from keg.init_connection()
 

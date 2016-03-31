@@ -1,4 +1,4 @@
-from asyncio.subprocess import PIPE, STDOUT, create_subprocess_exec
+from asyncio.subprocess import PIPE, STDOUT
 import asyncio.subprocess
 import serial.aio
 import asyncio
@@ -158,7 +158,6 @@ class Keg:
                 connected_fut,
                 command,
                 path.replace('~', os.environ['HOME'])))
-
             pts = yield from connected_fut
             self.pts = pts
 

@@ -9,6 +9,7 @@ def retrieve_devices_by_serial():
     serial_re = re.compile('SER=([\d\w]+)')
     
     serials = {}
+    ports = []
     for port in list_ports.comports() + ['toast']:
         try:
             hwid = getattr(port, 'hwid')
@@ -22,8 +23,9 @@ def retrieve_devices_by_serial():
                 serial_id = m[0]
     
                 serials[serial_id] = port.device
+                ports.append(port.device)
     
-    return serials
+    return serials, ports
 
 
 def create_process_with_command(command, cwd=None):
@@ -90,6 +92,11 @@ def create_simulator(simulator_ready_future, command, path="./"):
     all_data = yield from get_line_until_timeout(proc, 1.5, False)
 
     mat = re.findall('((?P<sim>\/tmp\/[-\w\d]+?)\s)|(?P<pts>\/dev\/pts\/\d+)', "".join(all_data))
+
+    if not mat:
+        # ugly, need to catch these
+        assert bool(mat), '\033[91m' + 'This should find something... probably not building simulator.  output: {}'.format(repr("\n".join(all_data))) + '\033[0m'
+
     _, sim, pts = [next(x for x in y if x) for y in zip(*mat)]
 
     yield from _make_and_upload_sim_code(sim)

@@ -9,6 +9,11 @@ import virtual
 with open('config.json') as f:
     config = json.load(f)
 
+
+class FakeProtocol:
+    def __init__(self):
+        return 'toast'
+
 def stdin_reader():
     data = sys.stdin.readline()
     asyncio.ensure_future(queue.put(data))
@@ -46,14 +51,14 @@ def main():
 
     loop.add_reader(sys.stdin, stdin_reader)
 
-    print(SocketProtocol.items)
+    fake_protocol = FakeProtocol()
+    print('>>> ', end='')
     while True:
         val = yield from queue.get()
         if val in ['quit', 'exit']:
             break
 
-        print(SocketProtocol.items)
-        #print(handle_message(val))
+        print(handle_message(fake_protocol, val) + '\n>>> ', end='')
 
 
 

@@ -43,7 +43,7 @@ class SerialProtocol(asyncio.Protocol):
 
     items = []
 
-def handle_message(message):
+def handle_message(self, message):
     m1 = re.findall('reg\s(\/dev\/[\w\/]+)', message)
     if m1:
         keg = Keg.get_keg_by_pts(m1[0])
@@ -111,7 +111,7 @@ class SocketProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         message = data.decode()
-        return handle_message(message)
+        return handle_message(self, message)
 
     def connection_lost(self, exc):
         peername = self.transport.get_extra_info('peername')

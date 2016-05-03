@@ -76,7 +76,8 @@ def handle_message(self, message):
             text = 'keg with name {} not found\n'.format(repr(kegname))
         else:
             text = "pouring {} to {}...\n".format(amount, repr(kegname))
-            keg.create_task(keg.pour, 100, int(amount))
+            a = keg.create_task(keg.pour, 100, int(amount))
+            print('a: {}'.format(a))
 
         return self.transport.write(text.encode())
 
@@ -94,6 +95,23 @@ def handle_message(self, message):
             text = 'keg is not pouring...\n'
 
         return self.transport.write(text.encode())
+
+    m5 = re.findall('keg "([\w\s]+)" temps', message)
+    if m5:
+        kegname = m5[0]
+        keg = Keg.get_keg_by_name(kegname)
+        if keg is None:
+            text = 'keg with name {} not found\n'.format(repr(kegname))
+
+        elif keg.current_task is not None:
+            text = 'cancelling...\n'
+            keg.serial_transport.write(b'cancel\n')
+        else:
+            text = 'fetching temps...\n'
+            keg.create_task(keg.temps, 10)
+
+        return self.transport.write(text.encode())
+
 
     return "err: invalid command"
 

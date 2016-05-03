@@ -12,7 +12,14 @@ with open('config.json') as f:
 
 class FakeProtocol:
     def __init__(self):
-        return 'toast'
+        self.registered_to = set()
+        print('init!')
+
+    class transport:
+        def write(message):
+            print(message)
+
+
 
 def stdin_reader():
     data = sys.stdin.readline()
@@ -58,7 +65,7 @@ def main():
         if val in ['quit', 'exit']:
             break
 
-        print(handle_message(fake_protocol, val) + '\n>>> ', end='')
+        print(str(handle_message(fake_protocol, val))+ '\n>>> ', end='')
 
 
 
